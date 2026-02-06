@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { TreatmentRecord } from '@/types/healthcare';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,12 @@ import {
   Heart,
   Users,
   Baby,
-  Stethoscope
+  Stethoscope,
+  Camera,
+  Upload,
+  X,
+  Image,
+  File
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -28,6 +33,10 @@ const TreatmentSection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TreatmentRecord | null>(null);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const [uploadedDocuments, setUploadedDocuments] = useState<string[]>([]);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     beneficiaryName: '',
@@ -67,6 +76,34 @@ const TreatmentSection = () => {
     }
   };
 
+  const handlePhotoCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setUploadedDocuments(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setUploadedDocuments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = () => {
     if (!formData.beneficiaryName || !formData.diagnosis || !formData.dateGiven) {
       toast.error('Please fill in required fields');
@@ -80,6 +117,8 @@ const TreatmentSection = () => {
           ...formData,
           beneficiaryId: r.beneficiaryId,
           dateGiven: new Date(formData.dateGiven),
+          photoUrl: capturedPhoto || r.photoUrl,
+          documents: uploadedDocuments.length > 0 ? uploadedDocuments : r.documents,
         } : r)
       );
       toast.success('Treatment record updated');
@@ -95,6 +134,8 @@ const TreatmentSection = () => {
         dateGiven: new Date(formData.dateGiven),
         doctorName: formData.doctorName || 'PHC Staff',
         notes: formData.notes,
+        photoUrl: capturedPhoto || undefined,
+        documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
       };
       setTreatmentRecords(prev => [newRecord, ...prev]);
       toast.success('Treatment record added');
@@ -115,6 +156,8 @@ const TreatmentSection = () => {
       notes: '',
     });
     setEditingRecord(null);
+    setCapturedPhoto(null);
+    setUploadedDocuments([]);
     setIsDialogOpen(false);
   };
 
@@ -130,6 +173,8 @@ const TreatmentSection = () => {
       doctorName: record.doctorName,
       notes: record.notes || '',
     });
+    setCapturedPhoto(record.photoUrl || null);
+    setUploadedDocuments(record.documents || []);
     setIsDialogOpen(true);
   };
 
@@ -264,6 +309,98 @@ const TreatmentSection = () => {
                       rows={2}
                     />
                   </div>
+
+                  {/* Photo Capture Section */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      <Camera className="w-4 h-4 inline mr-1" />
+                      Capture Photo (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      ref={photoInputRef}
+                      onChange={handlePhotoCapture}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      {capturedPhoto ? 'Photo Captured ✓' : 'Take Photo'}
+                    </Button>
+                    {capturedPhoto && (
+                      <div className="mt-2 relative">
+                        <img src={capturedPhoto} alt="Captured" className="w-full max-h-32 object-cover rounded-lg" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => setCapturedPhoto(null)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Document Upload Section */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      <Upload className="w-4 h-4 inline mr-1" />
+                      Upload Scanned Documents (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      multiple
+                      ref={documentInputRef}
+                      onChange={handleDocumentUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => documentInputRef.current?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Documents
+                    </Button>
+                    {uploadedDocuments.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {uploadedDocuments.map((doc, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                            <div className="flex items-center gap-2">
+                              {doc.startsWith('data:image') ? (
+                                <Image className="w-4 h-4 text-primary" />
+                              ) : (
+                                <File className="w-4 h-4 text-primary" />
+                              )}
+                              <span className="text-sm truncate max-w-[150px]">
+                                Document {idx + 1}
+                              </span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => removeDocument(idx)}
+                            >
+                              <X className="w-3 h-3 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex gap-2 justify-end">
                     <Button variant="outline" onClick={resetForm}>Cancel</Button>
                     <Button onClick={handleSubmit} className="gradient-primary">
@@ -339,6 +476,48 @@ const TreatmentSection = () => {
                   </div>
                   {record.notes && (
                     <p className="text-sm text-muted-foreground mt-2 bg-muted/50 p-2 rounded">📝 {record.notes}</p>
+                  )}
+                  
+                  {/* Display Photo and Documents */}
+                  {(record.photoUrl || (record.documents && record.documents.length > 0)) && (
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {record.photoUrl && (
+                        <div className="relative">
+                          <img 
+                            src={record.photoUrl} 
+                            alt="Treatment photo" 
+                            className="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => window.open(record.photoUrl, '_blank')}
+                          />
+                          <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                            <Camera className="w-3 h-3" />
+                          </div>
+                        </div>
+                      )}
+                      {record.documents?.map((doc, idx) => (
+                        <div 
+                          key={idx} 
+                          className="relative cursor-pointer"
+                          onClick={() => window.open(doc, '_blank')}
+                        >
+                          {doc.startsWith('data:image') ? (
+                            <img 
+                              src={doc} 
+                              alt={`Document ${idx + 1}`} 
+                              className="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 bg-muted rounded-lg border flex flex-col items-center justify-center hover:bg-muted/80 transition-colors">
+                              <File className="w-6 h-6 text-primary" />
+                              <span className="text-xs text-muted-foreground mt-1">Doc {idx + 1}</span>
+                            </div>
+                          )}
+                          <div className="absolute -top-1 -right-1 bg-success text-success-foreground rounded-full p-0.5">
+                            <Upload className="w-3 h-3" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
                 {isAsha && (
