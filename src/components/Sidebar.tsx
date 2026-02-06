@@ -107,10 +107,20 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
           <div className="p-4 border-b border-border">
             <div className="bg-muted rounded-xl p-4">
               <p className="font-semibold text-foreground truncate">{currentUser?.name}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs font-mono bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  ID: {currentUser?.patientId}
+                </span>
+              </div>
               <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor()}`}>
                 {getRoleLabel()}
               </span>
               <p className="text-xs text-muted-foreground mt-2">{currentUser?.village}</p>
+              {currentUser?.loginTime && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  🕐 Login: {new Date(currentUser.loginTime).toLocaleTimeString()}
+                </p>
+              )}
             </div>
           </div>
 
