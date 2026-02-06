@@ -47,6 +47,8 @@ export interface TreatmentRecord {
   dateGiven: Date;
   doctorName: string;
   notes?: string;
+  photoUrl?: string;
+  documents?: string[];
 }
 
 export interface MealMenuItem {
