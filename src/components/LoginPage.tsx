@@ -4,21 +4,24 @@ import { UserRole } from '@/types/healthcare';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Heart, Users, Baby, UserCheck, Stethoscope } from 'lucide-react';
+import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash } from 'lucide-react';
+import { generatePatientId } from '@/utils/patientIdGenerator';
+import { format } from 'date-fns';
 import heroBg from '@/assets/hero-bg.jpg';
 
-const roleOptions: { role: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
-  { role: 'asha', label: 'ASHA Worker', icon: <Stethoscope className="w-8 h-8" />, description: 'Community Health Worker' },
-  { role: 'pregnant', label: 'Pregnant Woman', icon: <Heart className="w-8 h-8" />, description: 'Expecting Mother' },
-  { role: 'elderly', label: 'Elderly Person', icon: <Users className="w-8 h-8" />, description: 'Senior Citizen' },
-  { role: 'infant_family', label: 'Infant Family', icon: <Baby className="w-8 h-8" />, description: 'Parent/Guardian of Infant' },
+const roleOptions: { role: UserRole; label: string; icon: React.ReactNode; description: string; idPrefix: string }[] = [
+  { role: 'asha', label: 'ASHA Worker', icon: <Stethoscope className="w-8 h-8" />, description: 'Community Health Worker', idPrefix: '0XXXXX' },
+  { role: 'pregnant', label: 'Pregnant Woman', icon: <Heart className="w-8 h-8" />, description: 'Expecting Mother', idPrefix: '1XXXXX' },
+  { role: 'elderly', label: 'Elderly Person', icon: <Users className="w-8 h-8" />, description: 'Senior Citizen', idPrefix: '2XXXXX' },
+  { role: 'infant_family', label: 'Infant Family', icon: <Baby className="w-8 h-8" />, description: 'Parent/Guardian of Infant', idPrefix: '3XXXXX' },
 ];
 
 const LoginPage = () => {
-  const { setCurrentUser, users } = useApp();
+  const { loginUser, users, setUsers } = useApp();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [currentTime] = useState(new Date());
 
   const handleLogin = () => {
     if (!selectedRole || !name.trim()) return;
@@ -27,17 +30,21 @@ const LoginPage = () => {
     let user = users.find(u => u.role === selectedRole && u.name.toLowerCase() === name.toLowerCase());
     
     if (!user) {
+      const patientId = generatePatientId(selectedRole);
       user = {
         id: Date.now().toString(),
+        patientId,
         name: name.trim(),
         role: selectedRole,
         phone: phone || '9999999999',
         village: 'Rampur',
         assignedAshaId: selectedRole !== 'asha' ? '1' : undefined,
       };
+      // Add new user to users list
+      setUsers(prev => [...prev, user!]);
     }
 
-    setCurrentUser(user);
+    loginUser(user);
   };
 
   return (
@@ -68,6 +75,13 @@ const LoginPage = () => {
           <p className="text-white/70 mt-2">
             Healthcare for Pregnant Women, Elderly & Infants
           </p>
+          {/* Current Time Display */}
+          <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2">
+            <Clock className="w-4 h-4 text-white" />
+            <span className="text-white text-sm">
+              {format(currentTime, 'dd MMM yyyy, hh:mm a')}
+            </span>
+          </div>
         </div>
 
         {/* Login Card */}
@@ -78,7 +92,7 @@ const LoginPage = () => {
 
           {/* Role Selection */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {roleOptions.map(({ role, label, icon, description }) => (
+            {roleOptions.map(({ role, label, icon, description, idPrefix }) => (
               <button
                 key={role}
                 onClick={() => setSelectedRole(role)}
@@ -95,6 +109,10 @@ const LoginPage = () => {
                   {label}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                <div className="mt-2 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                  <Hash className="w-3 h-3" />
+                  <span>ID: {idPrefix}</span>
+                </div>
               </button>
             ))}
           </div>
@@ -102,6 +120,14 @@ const LoginPage = () => {
           {/* Login Form */}
           {selectedRole && (
             <div className="space-y-4 animate-fade-in">
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground text-center">
+                <Hash className="w-4 h-4 inline mr-1" />
+                Your unique 6-digit Patient ID will be generated starting with{' '}
+                <span className="font-bold text-primary">
+                  {roleOptions.find(r => r.role === selectedRole)?.idPrefix.charAt(0)}
+                </span>
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Your Name
@@ -134,6 +160,11 @@ const LoginPage = () => {
                 <UserCheck className="w-5 h-5 mr-2" />
                 Login as {roleOptions.find(r => r.role === selectedRole)?.label}
               </Button>
+              
+              <p className="text-xs text-center text-muted-foreground">
+                <Clock className="w-3 h-3 inline mr-1" />
+                Login time will be recorded: {format(new Date(), 'hh:mm:ss a')}
+              </p>
             </div>
           )}
         </Card>

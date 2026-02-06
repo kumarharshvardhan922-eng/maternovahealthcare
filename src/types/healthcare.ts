@@ -2,11 +2,13 @@ export type UserRole = 'asha' | 'pregnant' | 'elderly' | 'infant_family';
 
 export interface User {
   id: string;
+  patientId: string; // 6-digit unique ID starting with 1 (pregnant), 2 (elderly), 3 (infant)
   name: string;
   role: UserRole;
   phone: string;
   village?: string;
   assignedAshaId?: string;
+  loginTime?: Date;
 }
 
 export interface EmergencyAlert {
@@ -49,6 +51,24 @@ export interface TreatmentRecord {
   notes?: string;
   photoUrl?: string;
   documents?: string[];
+}
+
+export interface PrescribedMeal {
+  id: string;
+  patientId: string; // Links to user's 6-digit patientId
+  patientName: string;
+  patientType: 'pregnant' | 'elderly' | 'infant';
+  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  name: string;
+  description: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: string[];
+  prescribedBy: string; // Doctor name
+  prescribedDate: Date;
+  specialInstructions?: string;
 }
 
 export interface MealMenuItem {
