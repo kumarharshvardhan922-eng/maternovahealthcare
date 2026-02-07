@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { VaccinationRecord } from '@/types/healthcare';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,29 +21,29 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const VaccinationSection = () => {
-  const { vaccinationRecords, setVaccinationRecords, currentUser } = useApp();
+  const { vaccinationRecords, addVaccinationRecord, updateVaccinationRecord, deleteVaccinationRecord, currentUser, profiles } = useApp();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<VaccinationRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<typeof vaccinationRecords[0] | null>(null);
   
   const [formData, setFormData] = useState({
-    beneficiaryName: '',
-    beneficiaryType: 'pregnant' as 'pregnant' | 'elderly' | 'infant',
-    vaccineName: '',
-    doseNumber: 1,
-    dateGiven: '',
-    nextDueDate: '',
-    administeredBy: '',
+    beneficiary_name: '',
+    beneficiary_type: 'pregnant' as 'pregnant' | 'elderly' | 'infant',
+    vaccine_name: '',
+    dose_number: 1,
+    date_given: '',
+    next_due_date: '',
+    administered_by: '',
     notes: '',
   });
 
   const isAsha = currentUser?.role === 'asha';
 
   const filteredRecords = vaccinationRecords.filter(record => {
-    const matchesCategory = filterCategory === 'all' || record.beneficiaryType === filterCategory;
-    const matchesSearch = record.beneficiaryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.vaccineName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || record.beneficiary_type === filterCategory;
+    const matchesSearch = record.beneficiary_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.vaccine_name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -66,38 +65,32 @@ const VaccinationSection = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.beneficiaryName || !formData.vaccineName || !formData.dateGiven) {
+  const handleSubmit = async () => {
+    if (!formData.beneficiary_name || !formData.vaccine_name || !formData.date_given) {
       toast.error('Please fill in required fields');
       return;
     }
 
+    // Find a profile to link to or use a placeholder
+    const matchingProfile = profiles.find(p => p.name.toLowerCase() === formData.beneficiary_name.toLowerCase());
+
     if (editingRecord) {
-      setVaccinationRecords(prev =>
-        prev.map(r => r.id === editingRecord.id ? {
-          ...r,
-          ...formData,
-          beneficiaryId: r.beneficiaryId,
-          dateGiven: new Date(formData.dateGiven),
-          nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
-        } : r)
-      );
-      toast.success('Vaccination record updated');
+      await updateVaccinationRecord(editingRecord.id, {
+        ...formData,
+        next_due_date: formData.next_due_date || null,
+      });
     } else {
-      const newRecord: VaccinationRecord = {
-        id: Date.now().toString(),
-        beneficiaryId: Date.now().toString(),
-        beneficiaryName: formData.beneficiaryName,
-        beneficiaryType: formData.beneficiaryType,
-        vaccineName: formData.vaccineName,
-        doseNumber: formData.doseNumber,
-        dateGiven: new Date(formData.dateGiven),
-        nextDueDate: formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
-        administeredBy: formData.administeredBy || 'ASHA Worker',
-        notes: formData.notes,
-      };
-      setVaccinationRecords(prev => [newRecord, ...prev]);
-      toast.success('Vaccination record added');
+      await addVaccinationRecord({
+        beneficiary_id: matchingProfile?.id || crypto.randomUUID(),
+        beneficiary_name: formData.beneficiary_name,
+        beneficiary_type: formData.beneficiary_type,
+        vaccine_name: formData.vaccine_name,
+        dose_number: formData.dose_number,
+        date_given: formData.date_given,
+        next_due_date: formData.next_due_date || null,
+        administered_by: formData.administered_by || 'ASHA Worker',
+        notes: formData.notes || null,
+      });
     }
 
     resetForm();
@@ -105,50 +98,49 @@ const VaccinationSection = () => {
 
   const resetForm = () => {
     setFormData({
-      beneficiaryName: '',
-      beneficiaryType: 'pregnant',
-      vaccineName: '',
-      doseNumber: 1,
-      dateGiven: '',
-      nextDueDate: '',
-      administeredBy: '',
+      beneficiary_name: '',
+      beneficiary_type: 'pregnant',
+      vaccine_name: '',
+      dose_number: 1,
+      date_given: '',
+      next_due_date: '',
+      administered_by: '',
       notes: '',
     });
     setEditingRecord(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (record: VaccinationRecord) => {
+  const handleEdit = (record: typeof vaccinationRecords[0]) => {
     setEditingRecord(record);
     setFormData({
-      beneficiaryName: record.beneficiaryName,
-      beneficiaryType: record.beneficiaryType,
-      vaccineName: record.vaccineName,
-      doseNumber: record.doseNumber,
-      dateGiven: format(record.dateGiven, 'yyyy-MM-dd'),
-      nextDueDate: record.nextDueDate ? format(record.nextDueDate, 'yyyy-MM-dd') : '',
-      administeredBy: record.administeredBy,
+      beneficiary_name: record.beneficiary_name,
+      beneficiary_type: record.beneficiary_type,
+      vaccine_name: record.vaccine_name,
+      dose_number: record.dose_number,
+      date_given: format(new Date(record.date_given), 'yyyy-MM-dd'),
+      next_due_date: record.next_due_date ? format(new Date(record.next_due_date), 'yyyy-MM-dd') : '',
+      administered_by: record.administered_by,
       notes: record.notes || '',
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setVaccinationRecords(prev => prev.filter(r => r.id !== id));
-    toast.success('Record deleted');
+  const handleDelete = async (id: string) => {
+    await deleteVaccinationRecord(id);
   };
 
   const exportData = () => {
     const csvContent = [
       ['Name', 'Category', 'Vaccine', 'Dose', 'Date Given', 'Next Due', 'Administered By', 'Notes'],
       ...filteredRecords.map(r => [
-        r.beneficiaryName,
-        r.beneficiaryType,
-        r.vaccineName,
-        r.doseNumber,
-        format(r.dateGiven, 'yyyy-MM-dd'),
-        r.nextDueDate ? format(r.nextDueDate, 'yyyy-MM-dd') : '',
-        r.administeredBy,
+        r.beneficiary_name,
+        r.beneficiary_type,
+        r.vaccine_name,
+        r.dose_number,
+        format(new Date(r.date_given), 'yyyy-MM-dd'),
+        r.next_due_date ? format(new Date(r.next_due_date), 'yyyy-MM-dd') : '',
+        r.administered_by,
         r.notes || '',
       ])
     ].map(row => row.join(',')).join('\n');
@@ -191,17 +183,17 @@ const VaccinationSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Beneficiary Name *</label>
                     <Input
-                      value={formData.beneficiaryName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, beneficiaryName: e.target.value }))}
+                      value={formData.beneficiary_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, beneficiary_name: e.target.value }))}
                       placeholder="Patient name"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Category *</label>
                     <Select
-                      value={formData.beneficiaryType}
+                      value={formData.beneficiary_type}
                       onValueChange={(v: 'pregnant' | 'elderly' | 'infant') => 
-                        setFormData(prev => ({ ...prev, beneficiaryType: v }))
+                        setFormData(prev => ({ ...prev, beneficiary_type: v }))
                       }
                     >
                       <SelectTrigger>
@@ -217,8 +209,8 @@ const VaccinationSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Vaccine Name *</label>
                     <Input
-                      value={formData.vaccineName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, vaccineName: e.target.value }))}
+                      value={formData.vaccine_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, vaccine_name: e.target.value }))}
                       placeholder="e.g., BCG, TT-1, Polio"
                     />
                   </div>
@@ -228,16 +220,16 @@ const VaccinationSection = () => {
                       <Input
                         type="number"
                         min="1"
-                        value={formData.doseNumber}
-                        onChange={(e) => setFormData(prev => ({ ...prev, doseNumber: parseInt(e.target.value) }))}
+                        value={formData.dose_number}
+                        onChange={(e) => setFormData(prev => ({ ...prev, dose_number: parseInt(e.target.value) }))}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">Date Given *</label>
                       <Input
                         type="date"
-                        value={formData.dateGiven}
-                        onChange={(e) => setFormData(prev => ({ ...prev, dateGiven: e.target.value }))}
+                        value={formData.date_given}
+                        onChange={(e) => setFormData(prev => ({ ...prev, date_given: e.target.value }))}
                       />
                     </div>
                   </div>
@@ -245,15 +237,15 @@ const VaccinationSection = () => {
                     <label className="block text-sm font-medium mb-2">Next Due Date</label>
                     <Input
                       type="date"
-                      value={formData.nextDueDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, nextDueDate: e.target.value }))}
+                      value={formData.next_due_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, next_due_date: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Administered By</label>
                     <Input
-                      value={formData.administeredBy}
-                      onChange={(e) => setFormData(prev => ({ ...prev, administeredBy: e.target.value }))}
+                      value={formData.administered_by}
+                      onChange={(e) => setFormData(prev => ({ ...prev, administered_by: e.target.value }))}
                       placeholder="Doctor/Staff name"
                     />
                   </div>
@@ -318,32 +310,32 @@ const VaccinationSection = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    {getCategoryIcon(record.beneficiaryType)}
-                    <span className="font-semibold text-foreground">{record.beneficiaryName}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryBadge(record.beneficiaryType)}`}>
-                      {record.beneficiaryType}
+                    {getCategoryIcon(record.beneficiary_type)}
+                    <span className="font-semibold text-foreground">{record.beneficiary_name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryBadge(record.beneficiary_type)}`}>
+                      {record.beneficiary_type}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Vaccine</p>
-                      <p className="font-medium">{record.vaccineName}</p>
+                      <p className="font-medium">{record.vaccine_name}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Dose</p>
-                      <p className="font-medium">#{record.doseNumber}</p>
+                      <p className="font-medium">#{record.dose_number}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Date Given</p>
                       <p className="font-medium flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {format(record.dateGiven, 'dd MMM yyyy')}
+                        {format(new Date(record.date_given), 'dd MMM yyyy')}
                       </p>
                     </div>
-                    {record.nextDueDate && (
+                    {record.next_due_date && (
                       <div>
                         <p className="text-muted-foreground">Next Due</p>
-                        <p className="font-medium text-warning">{format(record.nextDueDate, 'dd MMM yyyy')}</p>
+                        <p className="font-medium text-warning">{format(new Date(record.next_due_date), 'dd MMM yyyy')}</p>
                       </div>
                     )}
                   </div>

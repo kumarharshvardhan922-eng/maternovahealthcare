@@ -14,7 +14,358 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      emergency_alerts: {
+        Row: {
+          assigned_asha_id: string | null
+          created_at: string
+          id: string
+          location: string | null
+          message: string
+          photo_url: string | null
+          status: Database["public"]["Enums"]["alert_status"]
+          type: Database["public"]["Enums"]["alert_type"]
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Insert: {
+          assigned_asha_id?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          message: string
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          type?: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+          user_id: string
+          user_name: string
+          user_role: Database["public"]["Enums"]["user_role"]
+        }
+        Update: {
+          assigned_asha_id?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          message?: string
+          photo_url?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          type?: Database["public"]["Enums"]["alert_type"]
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+          user_role?: Database["public"]["Enums"]["user_role"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emergency_alerts_assigned_asha_id_fkey"
+            columns: ["assigned_asha_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emergency_alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      government_funding: {
+        Row: {
+          amount_inr: number
+          beneficiary_count: number
+          created_at: string
+          description: string | null
+          disbursement_date: string | null
+          eligibility: Database["public"]["Enums"]["funding_eligibility"]
+          id: string
+          notes: string | null
+          scheme_name: string
+          status: Database["public"]["Enums"]["funding_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_inr?: number
+          beneficiary_count?: number
+          created_at?: string
+          description?: string | null
+          disbursement_date?: string | null
+          eligibility?: Database["public"]["Enums"]["funding_eligibility"]
+          id?: string
+          notes?: string | null
+          scheme_name: string
+          status?: Database["public"]["Enums"]["funding_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_inr?: number
+          beneficiary_count?: number
+          created_at?: string
+          description?: string | null
+          disbursement_date?: string | null
+          eligibility?: Database["public"]["Enums"]["funding_eligibility"]
+          id?: string
+          notes?: string | null
+          scheme_name?: string
+          status?: Database["public"]["Enums"]["funding_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      nutrition_recommendations: {
+        Row: {
+          category: Database["public"]["Enums"]["beneficiary_type"]
+          created_at: string
+          daily_requirement: string
+          id: string
+          importance: string | null
+          nutrient_name: string
+          sources: string[] | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          daily_requirement: string
+          id?: string
+          importance?: string | null
+          nutrient_name: string
+          sources?: string[] | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          daily_requirement?: string
+          id?: string
+          importance?: string | null
+          nutrient_name?: string
+          sources?: string[] | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prescribed_meals: {
+        Row: {
+          calories: number
+          carbs: number
+          created_at: string
+          description: string | null
+          fat: number
+          id: string
+          ingredients: string[] | null
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          name: string
+          patient_id: string
+          patient_name: string
+          patient_type: Database["public"]["Enums"]["beneficiary_type"]
+          prescribed_by: string
+          prescribed_date: string
+          protein: number
+          special_instructions: string | null
+          updated_at: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          description?: string | null
+          fat?: number
+          id?: string
+          ingredients?: string[] | null
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          name: string
+          patient_id: string
+          patient_name: string
+          patient_type: Database["public"]["Enums"]["beneficiary_type"]
+          prescribed_by: string
+          prescribed_date?: string
+          protein?: number
+          special_instructions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          description?: string | null
+          fat?: number
+          id?: string
+          ingredients?: string[] | null
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          name?: string
+          patient_id?: string
+          patient_name?: string
+          patient_type?: Database["public"]["Enums"]["beneficiary_type"]
+          prescribed_by?: string
+          prescribed_date?: string
+          protein?: number
+          special_instructions?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          assigned_asha_id: string | null
+          created_at: string
+          id: string
+          login_time: string | null
+          name: string
+          patient_id: string
+          phone: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string | null
+          village: string | null
+        }
+        Insert: {
+          assigned_asha_id?: string | null
+          created_at?: string
+          id?: string
+          login_time?: string | null
+          name: string
+          patient_id: string
+          phone: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string | null
+          village?: string | null
+        }
+        Update: {
+          assigned_asha_id?: string | null
+          created_at?: string
+          id?: string
+          login_time?: string | null
+          name?: string
+          patient_id?: string
+          phone?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string | null
+          village?: string | null
+        }
+        Relationships: []
+      }
+      treatment_records: {
+        Row: {
+          beneficiary_id: string
+          beneficiary_name: string
+          beneficiary_type: Database["public"]["Enums"]["beneficiary_type"]
+          created_at: string
+          date_given: string
+          diagnosis: string
+          doctor_name: string
+          documents: string[] | null
+          id: string
+          notes: string | null
+          photo_url: string | null
+          prescription: string
+          treatment_type: string
+          updated_at: string
+        }
+        Insert: {
+          beneficiary_id: string
+          beneficiary_name: string
+          beneficiary_type: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          date_given: string
+          diagnosis: string
+          doctor_name: string
+          documents?: string[] | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          prescription: string
+          treatment_type: string
+          updated_at?: string
+        }
+        Update: {
+          beneficiary_id?: string
+          beneficiary_name?: string
+          beneficiary_type?: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          date_given?: string
+          diagnosis?: string
+          doctor_name?: string
+          documents?: string[] | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          prescription?: string
+          treatment_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_records_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vaccination_records: {
+        Row: {
+          administered_by: string
+          beneficiary_id: string
+          beneficiary_name: string
+          beneficiary_type: Database["public"]["Enums"]["beneficiary_type"]
+          created_at: string
+          date_given: string
+          dose_number: number
+          id: string
+          next_due_date: string | null
+          notes: string | null
+          updated_at: string
+          vaccine_name: string
+        }
+        Insert: {
+          administered_by: string
+          beneficiary_id: string
+          beneficiary_name: string
+          beneficiary_type: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          date_given: string
+          dose_number?: number
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          updated_at?: string
+          vaccine_name: string
+        }
+        Update: {
+          administered_by?: string
+          beneficiary_id?: string
+          beneficiary_name?: string
+          beneficiary_type?: Database["public"]["Enums"]["beneficiary_type"]
+          created_at?: string
+          date_given?: string
+          dose_number?: number
+          id?: string
+          next_due_date?: string | null
+          notes?: string | null
+          updated_at?: string
+          vaccine_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaccination_records_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +374,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      alert_status: "active" | "acknowledged" | "resolved"
+      alert_type: "medical" | "urgent" | "general"
+      beneficiary_type: "pregnant" | "elderly" | "infant"
+      funding_eligibility: "pregnant" | "elderly" | "infant" | "all"
+      funding_status: "pending" | "approved" | "disbursed"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack"
+      user_role: "asha" | "pregnant" | "elderly" | "infant_family"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +507,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_status: ["active", "acknowledged", "resolved"],
+      alert_type: ["medical", "urgent", "general"],
+      beneficiary_type: ["pregnant", "elderly", "infant"],
+      funding_eligibility: ["pregnant", "elderly", "infant", "all"],
+      funding_status: ["pending", "approved", "disbursed"],
+      meal_type: ["breakfast", "lunch", "dinner", "snack"],
+      user_role: ["asha", "pregnant", "elderly", "infant_family"],
+    },
   },
 } as const

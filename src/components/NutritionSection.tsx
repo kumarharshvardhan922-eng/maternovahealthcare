@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { NutritionRecommendation } from '@/types/healthcare';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,15 +23,15 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const NutritionSection = () => {
-  const { nutritionRecommendations, setNutritionRecommendations, currentUser } = useApp();
+  const { nutritionRecommendations, addNutritionRecommendation, updateNutritionRecommendation, deleteNutritionRecommendation, currentUser } = useApp();
   const [activeCategory, setActiveCategory] = useState<string>('pregnant');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<NutritionRecommendation | null>(null);
+  const [editingItem, setEditingItem] = useState<typeof nutritionRecommendations[0] | null>(null);
   
   const [formData, setFormData] = useState({
     category: 'pregnant' as 'pregnant' | 'elderly' | 'infant',
-    nutrientName: '',
-    dailyRequirement: '',
+    nutrient_name: '',
+    daily_requirement: '',
     unit: 'mg',
     sources: '',
     importance: '',
@@ -60,33 +59,27 @@ const NutritionSection = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.nutrientName || !formData.dailyRequirement) {
+  const handleSubmit = async () => {
+    if (!formData.nutrient_name || !formData.daily_requirement) {
       toast.error('Please fill in required fields');
       return;
     }
 
     if (editingItem) {
-      setNutritionRecommendations(prev =>
-        prev.map(n => n.id === editingItem.id ? {
-          ...n,
-          ...formData,
-          sources: formData.sources.split(',').map(s => s.trim()).filter(Boolean),
-        } : n)
-      );
-      toast.success('Nutrition recommendation updated');
+      await updateNutritionRecommendation(editingItem.id, {
+        ...formData,
+        sources: formData.sources.split(',').map(s => s.trim()).filter(Boolean),
+        importance: formData.importance || null,
+      });
     } else {
-      const newItem: NutritionRecommendation = {
-        id: Date.now().toString(),
+      await addNutritionRecommendation({
         category: formData.category,
-        nutrientName: formData.nutrientName,
-        dailyRequirement: formData.dailyRequirement,
+        nutrient_name: formData.nutrient_name,
+        daily_requirement: formData.daily_requirement,
         unit: formData.unit,
         sources: formData.sources.split(',').map(s => s.trim()).filter(Boolean),
-        importance: formData.importance,
-      };
-      setNutritionRecommendations(prev => [...prev, newItem]);
-      toast.success('Nutrition recommendation added');
+        importance: formData.importance || null,
+      });
     }
 
     resetForm();
@@ -95,8 +88,8 @@ const NutritionSection = () => {
   const resetForm = () => {
     setFormData({
       category: 'pregnant',
-      nutrientName: '',
-      dailyRequirement: '',
+      nutrient_name: '',
+      daily_requirement: '',
       unit: 'mg',
       sources: '',
       importance: '',
@@ -105,22 +98,21 @@ const NutritionSection = () => {
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (item: NutritionRecommendation) => {
+  const handleEdit = (item: typeof nutritionRecommendations[0]) => {
     setEditingItem(item);
     setFormData({
       category: item.category,
-      nutrientName: item.nutrientName,
-      dailyRequirement: item.dailyRequirement,
+      nutrient_name: item.nutrient_name,
+      daily_requirement: item.daily_requirement,
       unit: item.unit,
-      sources: item.sources.join(', '),
-      importance: item.importance,
+      sources: item.sources?.join(', ') || '',
+      importance: item.importance || '',
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setNutritionRecommendations(prev => prev.filter(n => n.id !== id));
-    toast.success('Recommendation deleted');
+  const handleDelete = async (id: string) => {
+    await deleteNutritionRecommendation(id);
   };
 
   const exportData = () => {
@@ -128,11 +120,11 @@ const NutritionSection = () => {
       ['Category', 'Nutrient', 'Daily Requirement', 'Unit', 'Food Sources', 'Importance'],
       ...nutritionRecommendations.map(n => [
         n.category,
-        n.nutrientName,
-        n.dailyRequirement,
+        n.nutrient_name,
+        n.daily_requirement,
         n.unit,
-        n.sources.join('; '),
-        n.importance,
+        n.sources?.join('; ') || '',
+        n.importance || '',
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -192,8 +184,8 @@ const NutritionSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Nutrient Name *</label>
                     <Input
-                      value={formData.nutrientName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, nutrientName: e.target.value }))}
+                      value={formData.nutrient_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nutrient_name: e.target.value }))}
                       placeholder="e.g., Iron, Calcium, Vitamin D"
                     />
                   </div>
@@ -201,8 +193,8 @@ const NutritionSection = () => {
                     <div>
                       <label className="block text-sm font-medium mb-2">Daily Requirement *</label>
                       <Input
-                        value={formData.dailyRequirement}
-                        onChange={(e) => setFormData(prev => ({ ...prev, dailyRequirement: e.target.value }))}
+                        value={formData.daily_requirement}
+                        onChange={(e) => setFormData(prev => ({ ...prev, daily_requirement: e.target.value }))}
                         placeholder="e.g., 27, 1000"
                       />
                     </div>
@@ -293,9 +285,9 @@ const NutritionSection = () => {
                       <Pill className={`w-5 h-5 text-${getCategoryColor(activeCategory)}`} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-foreground">{item.nutrientName}</h4>
+                      <h4 className="font-semibold text-foreground">{item.nutrient_name}</h4>
                       <p className="text-2xl font-bold text-primary">
-                        {item.dailyRequirement} <span className="text-sm font-normal text-muted-foreground">{item.unit}/day</span>
+                        {item.daily_requirement} <span className="text-sm font-normal text-muted-foreground">{item.unit}/day</span>
                       </p>
                     </div>
                   </div>
@@ -323,7 +315,7 @@ const NutritionSection = () => {
                 <div>
                   <p className="text-xs text-muted-foreground mb-2">🍽️ Food Sources:</p>
                   <div className="flex flex-wrap gap-1">
-                    {item.sources.map((source, idx) => (
+                    {item.sources?.map((source, idx) => (
                       <span key={idx} className="px-2 py-0.5 bg-sage-light text-foreground rounded-full text-xs">
                         {source}
                       </span>

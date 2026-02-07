@@ -17,34 +17,51 @@ const roleOptions: { role: UserRole; label: string; icon: React.ReactNode; descr
 ];
 
 const LoginPage = () => {
-  const { loginUser, users, setUsers } = useApp();
+  const { loginUser, profiles, addProfile } = useApp();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [currentTime] = useState(new Date());
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!selectedRole || !name.trim()) return;
 
-    // Find existing user or create new one
-    let user = users.find(u => u.role === selectedRole && u.name.toLowerCase() === name.toLowerCase());
+    // Find existing profile or create new one
+    let profile = profiles.find(p => p.role === selectedRole && p.name.toLowerCase() === name.toLowerCase());
     
-    if (!user) {
+    if (!profile) {
       const patientId = generatePatientId(selectedRole);
-      user = {
-        id: Date.now().toString(),
-        patientId,
+      const newProfile = await addProfile({
+        user_id: null,
+        patient_id: patientId,
         name: name.trim(),
         role: selectedRole,
         phone: phone || '9999999999',
         village: 'Rampur',
-        assignedAshaId: selectedRole !== 'asha' ? '1' : undefined,
-      };
-      // Add new user to users list
-      setUsers(prev => [...prev, user!]);
+        assigned_asha_id: null,
+        login_time: new Date().toISOString(),
+      });
+      
+      if (newProfile) {
+        loginUser({
+          id: newProfile.id,
+          patientId: newProfile.patient_id,
+          name: newProfile.name,
+          role: newProfile.role,
+          phone: newProfile.phone,
+          village: newProfile.village || undefined,
+        });
+      }
+    } else {
+      loginUser({
+        id: profile.id,
+        patientId: profile.patient_id,
+        name: profile.name,
+        role: profile.role,
+        phone: profile.phone,
+        village: profile.village || undefined,
+      });
     }
-
-    loginUser(user);
   };
 
   return (
