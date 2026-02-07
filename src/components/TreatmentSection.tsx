@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
-import { TreatmentRecord } from '@/types/healthcare';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,32 +27,32 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const TreatmentSection = () => {
-  const { treatmentRecords, setTreatmentRecords, currentUser } = useApp();
+  const { treatmentRecords, addTreatmentRecord, updateTreatmentRecord, deleteTreatmentRecord, currentUser, profiles } = useApp();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<TreatmentRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<typeof treatmentRecords[0] | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [uploadedDocuments, setUploadedDocuments] = useState<string[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const documentInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
-    beneficiaryName: '',
-    beneficiaryType: 'pregnant' as 'pregnant' | 'elderly' | 'infant',
-    treatmentType: '',
+    beneficiary_name: '',
+    beneficiary_type: 'pregnant' as 'pregnant' | 'elderly' | 'infant',
+    treatment_type: '',
     diagnosis: '',
     prescription: '',
-    dateGiven: '',
-    doctorName: '',
+    date_given: '',
+    doctor_name: '',
     notes: '',
   });
 
   const isAsha = currentUser?.role === 'asha';
 
   const filteredRecords = treatmentRecords.filter(record => {
-    const matchesCategory = filterCategory === 'all' || record.beneficiaryType === filterCategory;
-    const matchesSearch = record.beneficiaryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesCategory = filterCategory === 'all' || record.beneficiary_type === filterCategory;
+    const matchesSearch = record.beneficiary_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -104,41 +103,35 @@ const TreatmentSection = () => {
     setUploadedDocuments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
-    if (!formData.beneficiaryName || !formData.diagnosis || !formData.dateGiven) {
+  const handleSubmit = async () => {
+    if (!formData.beneficiary_name || !formData.diagnosis || !formData.date_given) {
       toast.error('Please fill in required fields');
       return;
     }
 
+    const matchingProfile = profiles.find(p => p.name.toLowerCase() === formData.beneficiary_name.toLowerCase());
+
     if (editingRecord) {
-      setTreatmentRecords(prev =>
-        prev.map(r => r.id === editingRecord.id ? {
-          ...r,
-          ...formData,
-          beneficiaryId: r.beneficiaryId,
-          dateGiven: new Date(formData.dateGiven),
-          photoUrl: capturedPhoto || r.photoUrl,
-          documents: uploadedDocuments.length > 0 ? uploadedDocuments : r.documents,
-        } : r)
-      );
-      toast.success('Treatment record updated');
+      await updateTreatmentRecord(editingRecord.id, {
+        ...formData,
+        photo_url: capturedPhoto || editingRecord.photo_url,
+        documents: uploadedDocuments.length > 0 ? uploadedDocuments : editingRecord.documents,
+        notes: formData.notes || null,
+      });
     } else {
-      const newRecord: TreatmentRecord = {
-        id: Date.now().toString(),
-        beneficiaryId: Date.now().toString(),
-        beneficiaryName: formData.beneficiaryName,
-        beneficiaryType: formData.beneficiaryType,
-        treatmentType: formData.treatmentType || 'General',
+      await addTreatmentRecord({
+        beneficiary_id: matchingProfile?.id || crypto.randomUUID(),
+        beneficiary_name: formData.beneficiary_name,
+        beneficiary_type: formData.beneficiary_type,
+        treatment_type: formData.treatment_type || 'General',
         diagnosis: formData.diagnosis,
         prescription: formData.prescription,
-        dateGiven: new Date(formData.dateGiven),
-        doctorName: formData.doctorName || 'PHC Staff',
-        notes: formData.notes,
-        photoUrl: capturedPhoto || undefined,
-        documents: uploadedDocuments.length > 0 ? uploadedDocuments : undefined,
-      };
-      setTreatmentRecords(prev => [newRecord, ...prev]);
-      toast.success('Treatment record added');
+        date_given: formData.date_given,
+        doctor_name: formData.doctor_name || 'PHC Staff',
+        notes: formData.notes || null,
+        photo_url: capturedPhoto || null,
+        documents: uploadedDocuments.length > 0 ? uploadedDocuments : null,
+      });
     }
 
     resetForm();
@@ -146,13 +139,13 @@ const TreatmentSection = () => {
 
   const resetForm = () => {
     setFormData({
-      beneficiaryName: '',
-      beneficiaryType: 'pregnant',
-      treatmentType: '',
+      beneficiary_name: '',
+      beneficiary_type: 'pregnant',
+      treatment_type: '',
       diagnosis: '',
       prescription: '',
-      dateGiven: '',
-      doctorName: '',
+      date_given: '',
+      doctor_name: '',
       notes: '',
     });
     setEditingRecord(null);
@@ -161,39 +154,38 @@ const TreatmentSection = () => {
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (record: TreatmentRecord) => {
+  const handleEdit = (record: typeof treatmentRecords[0]) => {
     setEditingRecord(record);
     setFormData({
-      beneficiaryName: record.beneficiaryName,
-      beneficiaryType: record.beneficiaryType,
-      treatmentType: record.treatmentType,
+      beneficiary_name: record.beneficiary_name,
+      beneficiary_type: record.beneficiary_type,
+      treatment_type: record.treatment_type,
       diagnosis: record.diagnosis,
       prescription: record.prescription,
-      dateGiven: format(record.dateGiven, 'yyyy-MM-dd'),
-      doctorName: record.doctorName,
+      date_given: format(new Date(record.date_given), 'yyyy-MM-dd'),
+      doctor_name: record.doctor_name,
       notes: record.notes || '',
     });
-    setCapturedPhoto(record.photoUrl || null);
+    setCapturedPhoto(record.photo_url || null);
     setUploadedDocuments(record.documents || []);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setTreatmentRecords(prev => prev.filter(r => r.id !== id));
-    toast.success('Record deleted');
+  const handleDelete = async (id: string) => {
+    await deleteTreatmentRecord(id);
   };
 
   const exportData = () => {
     const csvContent = [
       ['Name', 'Category', 'Treatment Type', 'Diagnosis', 'Prescription', 'Date', 'Doctor', 'Notes'],
       ...filteredRecords.map(r => [
-        r.beneficiaryName,
-        r.beneficiaryType,
-        r.treatmentType,
+        r.beneficiary_name,
+        r.beneficiary_type,
+        r.treatment_type,
         r.diagnosis,
         r.prescription,
-        format(r.dateGiven, 'yyyy-MM-dd'),
-        r.doctorName,
+        format(new Date(r.date_given), 'yyyy-MM-dd'),
+        r.doctor_name,
         r.notes || '',
       ])
     ].map(row => row.join(',')).join('\n');
@@ -236,17 +228,17 @@ const TreatmentSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Beneficiary Name *</label>
                     <Input
-                      value={formData.beneficiaryName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, beneficiaryName: e.target.value }))}
+                      value={formData.beneficiary_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, beneficiary_name: e.target.value }))}
                       placeholder="Patient name"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Category *</label>
                     <Select
-                      value={formData.beneficiaryType}
+                      value={formData.beneficiary_type}
                       onValueChange={(v: 'pregnant' | 'elderly' | 'infant') => 
-                        setFormData(prev => ({ ...prev, beneficiaryType: v }))
+                        setFormData(prev => ({ ...prev, beneficiary_type: v }))
                       }
                     >
                       <SelectTrigger>
@@ -262,8 +254,8 @@ const TreatmentSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Treatment Type</label>
                     <Input
-                      value={formData.treatmentType}
-                      onChange={(e) => setFormData(prev => ({ ...prev, treatmentType: e.target.value }))}
+                      value={formData.treatment_type}
+                      onChange={(e) => setFormData(prev => ({ ...prev, treatment_type: e.target.value }))}
                       placeholder="e.g., Prenatal Care, Chronic Care"
                     />
                   </div>
@@ -288,15 +280,15 @@ const TreatmentSection = () => {
                     <label className="block text-sm font-medium mb-2">Date *</label>
                     <Input
                       type="date"
-                      value={formData.dateGiven}
-                      onChange={(e) => setFormData(prev => ({ ...prev, dateGiven: e.target.value }))}
+                      value={formData.date_given}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date_given: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Doctor Name</label>
                     <Input
-                      value={formData.doctorName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, doctorName: e.target.value }))}
+                      value={formData.doctor_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, doctor_name: e.target.value }))}
                       placeholder="Treating doctor"
                     />
                   </div>
@@ -454,71 +446,64 @@ const TreatmentSection = () => {
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    {getCategoryIcon(record.beneficiaryType)}
-                    <span className="font-semibold text-foreground">{record.beneficiaryName}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryBadge(record.beneficiaryType)}`}>
-                      {record.beneficiaryType}
+                    {getCategoryIcon(record.beneficiary_type)}
+                    <span className="font-semibold text-foreground">{record.beneficiary_name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${getCategoryBadge(record.beneficiary_type)}`}>
+                      {record.beneficiary_type}
                     </span>
                   </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-2">
-                      <span className="text-muted-foreground min-w-24">Diagnosis:</span>
-                      <span className="font-medium">{record.diagnosis}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
+                    <div>
+                      <p className="text-muted-foreground">Diagnosis</p>
+                      <p className="font-medium text-destructive">{record.diagnosis}</p>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-muted-foreground min-w-24">Prescription:</span>
-                      <span className="font-medium">{record.prescription}</span>
+                    <div>
+                      <p className="text-muted-foreground">Treatment</p>
+                      <p className="font-medium">{record.treatment_type}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-muted-foreground">
-                      <span>📅 {format(record.dateGiven, 'dd MMM yyyy')}</span>
-                      <span>👨‍⚕️ {record.doctorName}</span>
+                    <div>
+                      <p className="text-muted-foreground">Date</p>
+                      <p className="font-medium">{format(new Date(record.date_given), 'dd MMM yyyy')}</p>
                     </div>
                   </div>
+                  {record.prescription && (
+                    <div className="bg-muted/50 p-3 rounded-lg mb-3">
+                      <p className="text-sm font-medium text-primary mb-1">💊 Prescription:</p>
+                      <p className="text-sm text-foreground">{record.prescription}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Stethoscope className="w-4 h-4" />
+                    <span>Dr. {record.doctor_name}</span>
+                  </div>
                   {record.notes && (
-                    <p className="text-sm text-muted-foreground mt-2 bg-muted/50 p-2 rounded">📝 {record.notes}</p>
+                    <p className="text-sm text-muted-foreground mt-2">📝 {record.notes}</p>
                   )}
                   
                   {/* Display Photo and Documents */}
-                  {(record.photoUrl || (record.documents && record.documents.length > 0)) && (
-                    <div className="mt-3 flex flex-wrap gap-3">
-                      {record.photoUrl && (
-                        <div className="relative">
-                          <img 
-                            src={record.photoUrl} 
-                            alt="Treatment photo" 
-                            className="w-20 h-20 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => window.open(record.photoUrl, '_blank')}
-                          />
-                          <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-0.5">
-                            <Camera className="w-3 h-3" />
-                          </div>
-                        </div>
-                      )}
-                      {record.documents?.map((doc, idx) => (
-                        <div 
-                          key={idx} 
-                          className="relative cursor-pointer"
-                          onClick={() => window.open(doc, '_blank')}
-                        >
-                          {doc.startsWith('data:image') ? (
-                            <img 
-                              src={doc} 
-                              alt={`Document ${idx + 1}`} 
-                              className="w-20 h-20 object-cover rounded-lg border hover:opacity-80 transition-opacity"
-                            />
-                          ) : (
-                            <div className="w-20 h-20 bg-muted rounded-lg border flex flex-col items-center justify-center hover:bg-muted/80 transition-colors">
-                              <File className="w-6 h-6 text-primary" />
-                              <span className="text-xs text-muted-foreground mt-1">Doc {idx + 1}</span>
-                            </div>
-                          )}
-                          <div className="absolute -top-1 -right-1 bg-success text-success-foreground rounded-full p-0.5">
-                            <Upload className="w-3 h-3" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {record.photo_url && (
+                      <div 
+                        className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer border border-border"
+                        onClick={() => window.open(record.photo_url || '', '_blank')}
+                      >
+                        <img src={record.photo_url} alt="Record photo" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    {record.documents?.map((doc, idx) => (
+                      <div 
+                        key={idx}
+                        className="w-16 h-16 rounded-lg overflow-hidden cursor-pointer border border-border flex items-center justify-center bg-muted"
+                        onClick={() => window.open(doc, '_blank')}
+                      >
+                        {doc.startsWith('data:image') ? (
+                          <img src={doc} alt={`Document ${idx + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <File className="w-6 h-6 text-primary" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 {isAsha && (
                   <div className="flex gap-2">

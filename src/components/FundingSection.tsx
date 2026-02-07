@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { GovernmentFunding } from '@/types/healthcare';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,20 +24,20 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 const FundingSection = () => {
-  const { governmentFunding, setGovernmentFunding, currentUser } = useApp();
+  const { governmentFunding, addGovernmentFunding, updateGovernmentFunding, deleteGovernmentFunding, currentUser } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEligibility, setFilterEligibility] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFunding, setEditingFunding] = useState<GovernmentFunding | null>(null);
+  const [editingFunding, setEditingFunding] = useState<typeof governmentFunding[0] | null>(null);
   
   const [formData, setFormData] = useState({
-    schemeName: '',
+    scheme_name: '',
     description: '',
     eligibility: 'all' as 'pregnant' | 'elderly' | 'infant' | 'all',
-    amountINR: 0,
-    disbursementDate: '',
+    amount_inr: 0,
+    disbursement_date: '',
     status: 'pending' as 'pending' | 'approved' | 'disbursed',
-    beneficiaryCount: 0,
+    beneficiary_count: 0,
     notes: '',
   });
 
@@ -46,18 +45,18 @@ const FundingSection = () => {
 
   const filteredFunding = governmentFunding.filter(fund => {
     const matchesEligibility = filterEligibility === 'all' || fund.eligibility === filterEligibility || fund.eligibility === 'all';
-    const matchesSearch = fund.schemeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         fund.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = fund.scheme_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (fund.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     return matchesEligibility && matchesSearch;
   });
 
   const totalDisbursed = governmentFunding
     .filter(f => f.status === 'disbursed')
-    .reduce((sum, f) => sum + (f.amountINR * f.beneficiaryCount), 0);
+    .reduce((sum, f) => sum + (Number(f.amount_inr) * f.beneficiary_count), 0);
 
   const totalApproved = governmentFunding
     .filter(f => f.status === 'approved')
-    .reduce((sum, f) => sum + (f.amountINR * f.beneficiaryCount), 0);
+    .reduce((sum, f) => sum + (Number(f.amount_inr) * f.beneficiary_count), 0);
 
   const getEligibilityIcon = (eligibility: string) => {
     switch (eligibility) {
@@ -82,35 +81,29 @@ const FundingSection = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (!formData.schemeName || !formData.description || !formData.amountINR) {
+  const handleSubmit = async () => {
+    if (!formData.scheme_name || !formData.description || !formData.amount_inr) {
       toast.error('Please fill in required fields');
       return;
     }
 
     if (editingFunding) {
-      setGovernmentFunding(prev =>
-        prev.map(f => f.id === editingFunding.id ? {
-          ...f,
-          ...formData,
-          disbursementDate: formData.disbursementDate ? new Date(formData.disbursementDate) : undefined,
-        } : f)
-      );
-      toast.success('Funding scheme updated');
+      await updateGovernmentFunding(editingFunding.id, {
+        ...formData,
+        disbursement_date: formData.disbursement_date || null,
+        notes: formData.notes || null,
+      });
     } else {
-      const newFunding: GovernmentFunding = {
-        id: Date.now().toString(),
-        schemeName: formData.schemeName,
+      await addGovernmentFunding({
+        scheme_name: formData.scheme_name,
         description: formData.description,
         eligibility: formData.eligibility,
-        amountINR: formData.amountINR,
-        disbursementDate: formData.disbursementDate ? new Date(formData.disbursementDate) : undefined,
+        amount_inr: formData.amount_inr,
+        disbursement_date: formData.disbursement_date || null,
         status: formData.status,
-        beneficiaryCount: formData.beneficiaryCount,
-        notes: formData.notes,
-      };
-      setGovernmentFunding(prev => [newFunding, ...prev]);
-      toast.success('Funding scheme added');
+        beneficiary_count: formData.beneficiary_count,
+        notes: formData.notes || null,
+      });
     }
 
     resetForm();
@@ -118,51 +111,50 @@ const FundingSection = () => {
 
   const resetForm = () => {
     setFormData({
-      schemeName: '',
+      scheme_name: '',
       description: '',
       eligibility: 'all',
-      amountINR: 0,
-      disbursementDate: '',
+      amount_inr: 0,
+      disbursement_date: '',
       status: 'pending',
-      beneficiaryCount: 0,
+      beneficiary_count: 0,
       notes: '',
     });
     setEditingFunding(null);
     setIsDialogOpen(false);
   };
 
-  const handleEdit = (funding: GovernmentFunding) => {
+  const handleEdit = (funding: typeof governmentFunding[0]) => {
     setEditingFunding(funding);
     setFormData({
-      schemeName: funding.schemeName,
-      description: funding.description,
+      scheme_name: funding.scheme_name,
+      description: funding.description || '',
       eligibility: funding.eligibility,
-      amountINR: funding.amountINR,
-      disbursementDate: funding.disbursementDate ? format(funding.disbursementDate, 'yyyy-MM-dd') : '',
+      amount_inr: Number(funding.amount_inr),
+      disbursement_date: funding.disbursement_date ? format(new Date(funding.disbursement_date), 'yyyy-MM-dd') : '',
       status: funding.status,
-      beneficiaryCount: funding.beneficiaryCount,
+      beneficiary_count: funding.beneficiary_count,
       notes: funding.notes || '',
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setGovernmentFunding(prev => prev.filter(f => f.id !== id));
-    toast.success('Funding scheme deleted');
+  const handleDelete = async (id: string) => {
+    await deleteGovernmentFunding(id);
   };
 
   const exportData = () => {
     const csvContent = [
       ['Scheme Name', 'Description', 'Eligibility', 'Amount (INR)', 'Total Amount', 'Status', 'Beneficiaries', 'Disbursement Date', 'Notes'],
       ...governmentFunding.map(f => [
-        f.schemeName,
-        f.description,
+        f.scheme_name,
+        f.description || '',
         f.eligibility,
-        f.amountINR,
-        f.amountINR * f.beneficiaryCount,
+        f.amount_inr,
+        Number(f.amount_inr) * f.beneficiary_count,
         f.status,
-        f.beneficiaryCount,
-        f.disbursementDate ? format(f.disbursementDate, 'yyyy-MM-dd') : '',
+        f.beneficiary_count,
+        f.disbursement_date ? format(new Date(f.disbursement_date), 'yyyy-MM-dd') : '',
         f.notes || '',
       ])
     ].map(row => row.join(',')).join('\n');
@@ -216,8 +208,8 @@ const FundingSection = () => {
                   <div>
                     <label className="block text-sm font-medium mb-2">Scheme Name *</label>
                     <Input
-                      value={formData.schemeName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, schemeName: e.target.value }))}
+                      value={formData.scheme_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scheme_name: e.target.value }))}
                       placeholder="e.g., Pradhan Mantri Matru Vandana Yojana"
                     />
                   </div>
@@ -274,8 +266,8 @@ const FundingSection = () => {
                       <label className="block text-sm font-medium mb-2">Amount (₹) *</label>
                       <Input
                         type="number"
-                        value={formData.amountINR}
-                        onChange={(e) => setFormData(prev => ({ ...prev, amountINR: parseInt(e.target.value) || 0 }))}
+                        value={formData.amount_inr}
+                        onChange={(e) => setFormData(prev => ({ ...prev, amount_inr: parseInt(e.target.value) || 0 }))}
                         placeholder="Per beneficiary"
                       />
                     </div>
@@ -283,8 +275,8 @@ const FundingSection = () => {
                       <label className="block text-sm font-medium mb-2">Beneficiaries</label>
                       <Input
                         type="number"
-                        value={formData.beneficiaryCount}
-                        onChange={(e) => setFormData(prev => ({ ...prev, beneficiaryCount: parseInt(e.target.value) || 0 }))}
+                        value={formData.beneficiary_count}
+                        onChange={(e) => setFormData(prev => ({ ...prev, beneficiary_count: parseInt(e.target.value) || 0 }))}
                         placeholder="Number of beneficiaries"
                       />
                     </div>
@@ -293,8 +285,8 @@ const FundingSection = () => {
                     <label className="block text-sm font-medium mb-2">Disbursement Date</label>
                     <Input
                       type="date"
-                      value={formData.disbursementDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, disbursementDate: e.target.value }))}
+                      value={formData.disbursement_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, disbursement_date: e.target.value }))}
                     />
                   </div>
                   <div>
@@ -397,7 +389,7 @@ const FundingSection = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     {getEligibilityIcon(funding.eligibility)}
-                    <span className="font-semibold text-foreground">{funding.schemeName}</span>
+                    <span className="font-semibold text-foreground">{funding.scheme_name}</span>
                     {getStatusBadge(funding.status)}
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">{funding.description}</p>
@@ -405,31 +397,29 @@ const FundingSection = () => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Per Person</p>
-                      <p className="font-semibold text-lg text-primary">₹{funding.amountINR.toLocaleString()}</p>
+                      <p className="font-semibold text-lg text-primary">₹{Number(funding.amount_inr).toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Beneficiaries</p>
-                      <p className="font-semibold">{funding.beneficiaryCount}</p>
+                      <p className="font-semibold">{funding.beneficiary_count}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Total Amount</p>
                       <p className="font-semibold text-success">
-                        {formatCurrency(funding.amountINR * funding.beneficiaryCount)}
+                        {formatCurrency(Number(funding.amount_inr) * funding.beneficiary_count)}
                       </p>
                     </div>
-                    {funding.disbursementDate && (
+                    {funding.disbursement_date && (
                       <div>
                         <p className="text-muted-foreground">Disbursement</p>
-                        <p className="font-medium">{format(funding.disbursementDate, 'dd MMM yyyy')}</p>
+                        <p className="font-semibold">{format(new Date(funding.disbursement_date), 'dd MMM yyyy')}</p>
                       </div>
                     )}
                   </div>
-                  
                   {funding.notes && (
-                    <p className="text-sm text-muted-foreground mt-3 bg-muted/50 p-2 rounded">📝 {funding.notes}</p>
+                    <p className="text-sm text-muted-foreground mt-2">📝 {funding.notes}</p>
                   )}
                 </div>
-                
                 {isAsha && (
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleEdit(funding)}>

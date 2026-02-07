@@ -22,15 +22,15 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
   const { 
     currentUser, 
     emergencyAlerts, 
-    vaccinationRecords, 
-    mealMenu, 
+    vaccinationRecords,
+    prescribedMeals,
     governmentFunding 
   } = useApp();
 
   const activeAlerts = emergencyAlerts.filter(a => a.status === 'active').length;
   const totalVaccinations = vaccinationRecords.length;
   const totalFunding = governmentFunding.reduce((sum, f) => 
-    f.status === 'disbursed' ? sum + (f.amountINR * f.beneficiaryCount) : sum, 0
+    f.status === 'disbursed' ? sum + (Number(f.amount_inr) * f.beneficiary_count) : sum, 0
   );
 
   const quickStats = [
@@ -50,7 +50,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
     },
     { 
       label: 'Meal Plans', 
-      value: mealMenu.length, 
+      value: prescribedMeals.length, 
       icon: Utensils, 
       color: 'bg-terracotta text-white',
       onClick: () => setActiveSection('meals')
@@ -171,8 +171,8 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      {getCategoryIcon(alert.userRole)}
-                      <span className="font-medium text-sm">{alert.userName}</span>
+                      {getCategoryIcon(alert.user_role)}
+                      <span className="font-medium text-sm">{alert.user_name}</span>
                     </div>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       alert.status === 'active' 
@@ -210,7 +210,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
             <div>
               <p className="font-semibold text-foreground">Pregnant Women</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiaryType === 'pregnant').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'pregnant').length} vaccinations
               </p>
             </div>
           </div>
@@ -221,7 +221,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
             <div>
               <p className="font-semibold text-foreground">Elderly</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiaryType === 'elderly').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'elderly').length} vaccinations
               </p>
             </div>
           </div>
@@ -232,7 +232,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
             <div>
               <p className="font-semibold text-foreground">Infants</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiaryType === 'infant').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'infant').length} vaccinations
               </p>
             </div>
           </div>
