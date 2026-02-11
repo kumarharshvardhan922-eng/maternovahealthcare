@@ -43,7 +43,20 @@ const FundingSection = () => {
 
   const isAsha = currentUser?.role === 'asha';
 
+  const getRoleBeneficiaryType = (role: string): string | null => {
+    switch (role) {
+      case 'pregnant': return 'pregnant';
+      case 'elderly': return 'elderly';
+      case 'infant_family': return 'infant';
+      default: return null;
+    }
+  };
+
+  const userBeneficiaryType = currentUser ? getRoleBeneficiaryType(currentUser.role) : null;
+
   const filteredFunding = governmentFunding.filter(fund => {
+    // Non-ASHA users only see funding for their type or 'all' eligibility
+    if (userBeneficiaryType && fund.eligibility !== userBeneficiaryType && fund.eligibility !== 'all') return false;
     const matchesEligibility = filterEligibility === 'all' || fund.eligibility === filterEligibility || fund.eligibility === 'all';
     const matchesSearch = fund.scheme_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (fund.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);

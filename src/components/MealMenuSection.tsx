@@ -53,17 +53,31 @@ const MealMenuSection = () => {
 
   const isAsha = currentUser?.role === 'asha';
 
+  const getRoleBeneficiaryType = (role: string): string | null => {
+    switch (role) {
+      case 'pregnant': return 'pregnant';
+      case 'elderly': return 'elderly';
+      case 'infant_family': return 'infant';
+      default: return null;
+    }
+  };
+
+  const userBeneficiaryType = currentUser ? getRoleBeneficiaryType(currentUser.role) : null;
+
+  // Force active category to user's type for non-ASHA users
+  const effectiveCategory = userBeneficiaryType || activeCategory;
+
   // Get patients for the selected category
   const categoryPatients = profiles.filter(p => {
-    if (activeCategory === 'pregnant') return p.role === 'pregnant';
-    if (activeCategory === 'elderly') return p.role === 'elderly';
-    if (activeCategory === 'infant') return p.role === 'infant_family';
+    if (effectiveCategory === 'pregnant') return p.role === 'pregnant';
+    if (effectiveCategory === 'elderly') return p.role === 'elderly';
+    if (effectiveCategory === 'infant') return p.role === 'infant_family';
     return false;
   });
 
   // Filter meals by category and patient
   const filteredMeals = prescribedMeals.filter(meal => {
-    const matchesCategory = meal.patient_type === activeCategory;
+    const matchesCategory = meal.patient_type === effectiveCategory;
     const matchesPatient = selectedPatientId === 'all' || meal.patient_id === selectedPatientId;
     const matchesSearch = meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          meal.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -476,7 +490,8 @@ const MealMenuSection = () => {
       </div>
 
       {/* Category Tabs */}
-      <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedPatientId('all'); }}>
+      <Tabs value={effectiveCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedPatientId('all'); }}>
+        {!userBeneficiaryType && (
         <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="pregnant" className="flex items-center gap-2 py-3">
             <Heart className="w-4 h-4 text-terracotta" />
@@ -491,8 +506,9 @@ const MealMenuSection = () => {
             <span className="hidden sm:inline">Infants</span>
           </TabsTrigger>
         </TabsList>
+        )}
 
-        <TabsContent value={activeCategory} className="mt-6">
+        <TabsContent value={effectiveCategory} className="mt-6">
           {/* Search & Filter */}
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-1">
@@ -525,10 +541,10 @@ const MealMenuSection = () => {
           {/* Category Header */}
           <div className="text-center mb-6 p-4 bg-muted/50 rounded-xl">
             <h2 className="text-xl font-heading font-semibold">
-              {getCategoryLabel(activeCategory)} - Prescribed Meals
+              {getCategoryLabel(effectiveCategory)} - Prescribed Meals
             </h2>
             <p className="text-muted-foreground text-sm">
-              Doctor-prescribed meal plans for {getCategoryLabel(activeCategory).toLowerCase()}
+              Doctor-prescribed meal plans for {getCategoryLabel(effectiveCategory).toLowerCase()}
             </p>
           </div>
 

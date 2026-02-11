@@ -50,7 +50,21 @@ const TreatmentSection = () => {
 
   const isAsha = currentUser?.role === 'asha';
 
+  // Map user role to beneficiary type for filtering
+  const getRoleBeneficiaryType = (role: string): string | null => {
+    switch (role) {
+      case 'pregnant': return 'pregnant';
+      case 'elderly': return 'elderly';
+      case 'infant_family': return 'infant';
+      default: return null; // ASHA sees all
+    }
+  };
+
+  const userBeneficiaryType = currentUser ? getRoleBeneficiaryType(currentUser.role) : null;
+
   const filteredRecords = treatmentRecords.filter(record => {
+    // Non-ASHA users only see their beneficiary type
+    if (userBeneficiaryType && record.beneficiary_type !== userBeneficiaryType) return false;
     const matchesCategory = filterCategory === 'all' || record.beneficiary_type === filterCategory;
     const matchesSearch = record.beneficiary_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase());

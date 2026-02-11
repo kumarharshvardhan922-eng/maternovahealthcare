@@ -39,7 +39,19 @@ const NutritionSection = () => {
 
   const isAsha = currentUser?.role === 'asha';
 
-  const filteredItems = nutritionRecommendations.filter(item => item.category === activeCategory);
+  const getRoleBeneficiaryType = (role: string): string | null => {
+    switch (role) {
+      case 'pregnant': return 'pregnant';
+      case 'elderly': return 'elderly';
+      case 'infant_family': return 'infant';
+      default: return null;
+    }
+  };
+
+  const userBeneficiaryType = currentUser ? getRoleBeneficiaryType(currentUser.role) : null;
+  const effectiveCategory = userBeneficiaryType || activeCategory;
+
+  const filteredItems = nutritionRecommendations.filter(item => item.category === effectiveCategory);
 
   const getCategoryLabel = (cat: string) => {
     switch (cat) {
@@ -249,7 +261,8 @@ const NutritionSection = () => {
       </div>
 
       {/* Category Tabs */}
-      <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+      <Tabs value={effectiveCategory} onValueChange={setActiveCategory}>
+        {!userBeneficiaryType && (
         <TabsList className="grid w-full grid-cols-3 h-auto">
           <TabsTrigger value="pregnant" className="flex items-center gap-2 py-3">
             <Heart className="w-4 h-4 text-terracotta" />
@@ -264,11 +277,12 @@ const NutritionSection = () => {
             <span className="hidden sm:inline">Infants</span>
           </TabsTrigger>
         </TabsList>
+        )}
 
-        <TabsContent value={activeCategory} className="mt-6">
+        <TabsContent value={effectiveCategory} className="mt-6">
           <div className="text-center mb-6 p-4 bg-muted/50 rounded-xl">
             <h2 className="text-xl font-heading font-semibold">
-              {getCategoryLabel(activeCategory)} - Daily Nutrition
+              {getCategoryLabel(effectiveCategory)} - Daily Nutrition
             </h2>
             <p className="text-muted-foreground text-sm">
               Recommended daily intake for optimal health

@@ -40,7 +40,19 @@ const VaccinationSection = () => {
 
   const isAsha = currentUser?.role === 'asha';
 
+  const getRoleBeneficiaryType = (role: string): string | null => {
+    switch (role) {
+      case 'pregnant': return 'pregnant';
+      case 'elderly': return 'elderly';
+      case 'infant_family': return 'infant';
+      default: return null;
+    }
+  };
+
+  const userBeneficiaryType = currentUser ? getRoleBeneficiaryType(currentUser.role) : null;
+
   const filteredRecords = vaccinationRecords.filter(record => {
+    if (userBeneficiaryType && record.beneficiary_type !== userBeneficiaryType) return false;
     const matchesCategory = filterCategory === 'all' || record.beneficiary_type === filterCategory;
     const matchesSearch = record.beneficiary_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.vaccine_name.toLowerCase().includes(searchTerm.toLowerCase());
