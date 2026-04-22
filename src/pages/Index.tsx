@@ -9,6 +9,7 @@ import TreatmentSection from '@/components/TreatmentSection';
 import MealMenuSection from '@/components/MealMenuSection';
 import NutritionSection from '@/components/NutritionSection';
 import FundingSection from '@/components/FundingSection';
+import PatientChatbot from '@/components/PatientChatbot';
 
 const Index = () => {
   const { currentUser } = useApp();
@@ -47,6 +48,7 @@ const Index = () => {
           {renderSection()}
         </div>
       </main>
+      <PatientChatbot />
     </div>
   );
 };
