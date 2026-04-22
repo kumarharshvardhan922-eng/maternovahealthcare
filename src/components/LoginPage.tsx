@@ -20,10 +20,16 @@ const roleOptionsBase: { role: UserRole; labelKey: string; icon: React.ReactNode
 
 const LoginPage = () => {
   const { loginUser, profiles, addProfile } = useApp();
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [currentTime] = useState(new Date());
+  const roleOptions = roleOptionsBase.map(r => ({
+    ...r,
+    label: t(r.labelKey),
+    description: t(r.descKey),
+  }));
 
   const handleLogin = async () => {
     if (!selectedRole || !name.trim()) return;
