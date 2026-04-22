@@ -7,13 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash } from 'lucide-react';
 import { generatePatientId } from '@/utils/patientIdGenerator';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import heroBg from '@/assets/hero-bg.jpg';
 
-const roleOptions: { role: UserRole; label: string; icon: React.ReactNode; description: string; idPrefix: string }[] = [
-  { role: 'asha', label: 'ASHA Worker', icon: <Stethoscope className="w-8 h-8" />, description: 'Community Health Worker', idPrefix: '0XXXXX' },
-  { role: 'pregnant', label: 'Pregnant Woman', icon: <Heart className="w-8 h-8" />, description: 'Expecting Mother', idPrefix: '1XXXXX' },
-  { role: 'elderly', label: 'Elderly Person', icon: <Users className="w-8 h-8" />, description: 'Senior Citizen', idPrefix: '2XXXXX' },
-  { role: 'infant_family', label: 'Infant Family', icon: <Baby className="w-8 h-8" />, description: 'Parent/Guardian of Infant', idPrefix: '3XXXXX' },
+const roleOptionsBase: { role: UserRole; labelKey: string; icon: React.ReactNode; descKey: string; idPrefix: string }[] = [
+  { role: 'asha', labelKey: 'roles.asha', icon: <Stethoscope className="w-8 h-8" />, descKey: 'login.ashaDesc', idPrefix: '0XXXXX' },
+  { role: 'pregnant', labelKey: 'roles.pregnant', icon: <Heart className="w-8 h-8" />, descKey: 'login.pregnantDesc', idPrefix: '1XXXXX' },
+  { role: 'elderly', labelKey: 'roles.elderly', icon: <Users className="w-8 h-8" />, descKey: 'login.elderlyDesc', idPrefix: '2XXXXX' },
+  { role: 'infant_family', labelKey: 'roles.infant_family', icon: <Baby className="w-8 h-8" />, descKey: 'login.infantDesc', idPrefix: '3XXXXX' },
 ];
 
 const LoginPage = () => {
