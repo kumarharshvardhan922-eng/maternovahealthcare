@@ -1,5 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { 
   Home, 
   AlertTriangle, 
@@ -21,17 +23,18 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
-  { id: 'emergency', label: 'Emergency Alerts', icon: AlertTriangle },
-  { id: 'vaccination', label: 'Vaccination Records', icon: Syringe },
-  { id: 'treatment', label: 'Treatment Records', icon: FileText },
-  { id: 'meals', label: 'Meal Menu', icon: Utensils },
-  { id: 'nutrition', label: 'Nutrition Guide', icon: Apple },
-  { id: 'funding', label: 'Government Funding', icon: Wallet },
+  { id: 'dashboard', labelKey: 'nav.dashboard', icon: Home },
+  { id: 'emergency', labelKey: 'nav.emergency', icon: AlertTriangle },
+  { id: 'vaccination', labelKey: 'nav.vaccination', icon: Syringe },
+  { id: 'treatment', labelKey: 'nav.treatment', icon: FileText },
+  { id: 'meals', labelKey: 'nav.meals', icon: Utensils },
+  { id: 'nutrition', labelKey: 'nav.nutrition', icon: Apple },
+  { id: 'funding', labelKey: 'nav.funding', icon: Wallet },
 ];
 
 const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
   const { currentUser, logout } = useApp();
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleNavClick = (sectionId: string) => {
@@ -51,10 +54,10 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
 
   const getRoleLabel = () => {
     switch (currentUser?.role) {
-      case 'asha': return 'ASHA Worker';
-      case 'pregnant': return 'Pregnant Woman';
-      case 'elderly': return 'Elderly Person';
-      case 'infant_family': return 'Infant Family';
+      case 'asha': return t('roles.asha');
+      case 'pregnant': return t('roles.pregnant');
+      case 'elderly': return t('roles.elderly');
+      case 'infant_family': return t('roles.infant_family');
       default: return 'User';
     }
   };
@@ -127,7 +130,7 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
           {/* Navigation */}
           <nav className="flex-1 p-4 overflow-y-auto">
             <ul className="space-y-1">
-              {menuItems.map(({ id, label, icon: Icon }) => (
+              {menuItems.map(({ id, labelKey, icon: Icon }) => (
                 <li key={id}>
                   <button
                     onClick={() => handleNavClick(id)}
@@ -138,12 +141,20 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
                     }`}
                   >
                     <Icon className="w-5 h-5" />
-                    <span className="font-medium">{label}</span>
+                    <span className="font-medium">{t(labelKey)}</span>
                   </button>
                 </li>
               ))}
             </ul>
           </nav>
+
+          {/* Language Switcher */}
+          <div className="p-4 border-t border-border">
+            <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
+              {t('nav.language')}
+            </p>
+            <LanguageSwitcher />
+          </div>
 
           {/* Logout */}
           <div className="p-4 border-t border-border">
@@ -153,7 +164,7 @@ const Sidebar = ({ activeSection, setActiveSection }: SidebarProps) => {
               className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <span>{t('nav.logout')}</span>
             </Button>
           </div>
         </div>
