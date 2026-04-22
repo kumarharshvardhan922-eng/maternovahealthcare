@@ -51,16 +51,17 @@ const PatientChatbot = () => {
     setIsLoading(true);
 
     let assistantSoFar = '';
+    let assistantStarted = false;
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === 'assistant' && last.content !== messages[messages.length - 1]?.content && prev.length > newMessages.length) {
-          return prev.map((m, i) =>
-            i === prev.length - 1 ? { ...m, content: assistantSoFar } : m,
-          );
+        if (!assistantStarted) {
+          assistantStarted = true;
+          return [...prev, { role: 'assistant', content: assistantSoFar }];
         }
-        return [...prev, { role: 'assistant', content: assistantSoFar }];
+        return prev.map((m, i) =>
+          i === prev.length - 1 ? { ...m, content: assistantSoFar } : m,
+        );
       });
     };
 
