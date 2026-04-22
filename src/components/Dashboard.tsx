@@ -1,6 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 import { 
   AlertTriangle, 
   Syringe, 
@@ -26,6 +27,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
     prescribedMeals,
     governmentFunding 
   } = useApp();
+  const { t } = useTranslation();
 
   const activeAlerts = emergencyAlerts.filter(a => a.status === 'active').length;
   const totalVaccinations = vaccinationRecords.length;
@@ -35,28 +37,28 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
 
   const quickStats = [
     { 
-      label: 'Active Alerts', 
+      label: t('dashboard.activeAlerts'), 
       value: activeAlerts, 
       icon: AlertTriangle, 
       color: 'bg-destructive text-destructive-foreground',
       onClick: () => setActiveSection('emergency')
     },
     { 
-      label: 'Vaccinations', 
+      label: t('dashboard.vaccinations'), 
       value: totalVaccinations, 
       icon: Syringe, 
       color: 'bg-primary text-primary-foreground',
       onClick: () => setActiveSection('vaccination')
     },
     { 
-      label: 'Meal Plans', 
+      label: t('dashboard.mealPlans'), 
       value: prescribedMeals.length, 
       icon: Utensils, 
       color: 'bg-terracotta text-white',
       onClick: () => setActiveSection('meals')
     },
     { 
-      label: 'Funding Disbursed', 
+      label: t('dashboard.fundingDisbursed'), 
       value: `₹${(totalFunding / 100000).toFixed(1)}L`, 
       icon: Wallet, 
       color: 'bg-success text-success-foreground',
@@ -80,12 +82,12 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
       {/* Welcome Section */}
       <div className="gradient-primary rounded-2xl p-6 md:p-8 text-primary-foreground">
         <h1 className="text-2xl md:text-3xl font-heading font-bold mb-2">
-          Namaste, {currentUser?.name}! 🙏
+          {t('dashboard.greeting')}, {currentUser?.name}! 🙏
         </h1>
         <p className="text-primary-foreground/80">
           {currentUser?.role === 'asha' 
-            ? 'You have access to all beneficiary records and emergency alerts.'
-            : 'Welcome to your healthcare dashboard. Stay healthy, stay happy!'}
+            ? t('dashboard.ashaWelcome')
+            : t('dashboard.userWelcome')}
         </p>
       </div>
 
@@ -112,7 +114,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
         <Card className="p-6">
           <h2 className="text-lg font-heading font-semibold mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
-            Quick Actions
+            {t('dashboard.quickActions')}
           </h2>
           <div className="grid grid-cols-2 gap-3">
             <Button 
@@ -121,7 +123,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               onClick={() => setActiveSection('emergency')}
             >
               <AlertTriangle className="w-6 h-6 text-destructive" />
-              <span className="text-sm">Emergency</span>
+              <span className="text-sm">{t('nav.emergency')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -129,7 +131,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               onClick={() => setActiveSection('vaccination')}
             >
               <Syringe className="w-6 h-6 text-primary" />
-              <span className="text-sm">Vaccinations</span>
+              <span className="text-sm">{t('dashboard.vaccinations')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -137,7 +139,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               onClick={() => setActiveSection('meals')}
             >
               <Utensils className="w-6 h-6 text-terracotta" />
-              <span className="text-sm">Meal Menu</span>
+              <span className="text-sm">{t('nav.meals')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -145,7 +147,7 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               onClick={() => setActiveSection('nutrition')}
             >
               <Apple className="w-6 h-6 text-success" />
-              <span className="text-sm">Nutrition</span>
+              <span className="text-sm">{t('nav.nutrition')}</span>
             </Button>
           </div>
         </Card>
@@ -154,10 +156,10 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
         <Card className="p-6">
           <h2 className="text-lg font-heading font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-warning" />
-            Recent Alerts
+            {t('dashboard.recentAlerts')}
           </h2>
           {recentAlerts.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No recent alerts</p>
+            <p className="text-muted-foreground text-center py-8">{t('dashboard.noAlerts')}</p>
           ) : (
             <div className="space-y-3">
               {recentAlerts.map(alert => (
@@ -194,23 +196,23 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
             className="w-full mt-4"
             onClick={() => setActiveSection('emergency')}
           >
-            View All Alerts
+            {t('dashboard.viewAllAlerts')}
           </Button>
         </Card>
       </div>
 
       {/* Category Summary */}
       <Card className="p-6">
-        <h2 className="text-lg font-heading font-semibold mb-4">Beneficiary Categories</h2>
+        <h2 className="text-lg font-heading font-semibold mb-4">{t('dashboard.categories')}</h2>
         <div className="grid md:grid-cols-3 gap-4">
           <div className="flex items-center gap-4 p-4 rounded-xl bg-terracotta/10 border border-terracotta/20">
             <div className="w-12 h-12 rounded-full bg-terracotta/20 flex items-center justify-center">
               <Heart className="w-6 h-6 text-terracotta" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Pregnant Women</p>
+              <p className="font-semibold text-foreground">{t('dashboard.pregnantWomen')}</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiary_type === 'pregnant').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'pregnant').length} {t('dashboard.vaccinations').toLowerCase()}
               </p>
             </div>
           </div>
@@ -219,9 +221,9 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               <Users className="w-6 h-6 text-sky" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Elderly</p>
+              <p className="font-semibold text-foreground">{t('dashboard.elderly')}</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiary_type === 'elderly').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'elderly').length} {t('dashboard.vaccinations').toLowerCase()}
               </p>
             </div>
           </div>
@@ -230,9 +232,9 @@ const Dashboard = ({ setActiveSection }: DashboardProps) => {
               <Baby className="w-6 h-6 text-lavender" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Infants</p>
+              <p className="font-semibold text-foreground">{t('dashboard.infants')}</p>
               <p className="text-sm text-muted-foreground">
-                {vaccinationRecords.filter(v => v.beneficiary_type === 'infant').length} vaccinations
+                {vaccinationRecords.filter(v => v.beneficiary_type === 'infant').length} {t('dashboard.vaccinations').toLowerCase()}
               </p>
             </div>
           </div>
