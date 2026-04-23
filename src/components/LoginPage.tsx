@@ -53,6 +53,9 @@ const LoginPage = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ name: false, phone: false });
   const [currentTime] = useState(new Date());
   const roleOptions = roleOptionsBase.map(r => ({
     ...r,
@@ -60,12 +63,40 @@ const LoginPage = () => {
     description: t(r.descKey),
   }));
 
-  const handleLogin = async () => {
-    if (!selectedRole || !name.trim()) return;
+  const handleNameChange = (value: string) => {
+    const filtered = value.replace(/[^A-Za-z\s.'-]/g, '');
+    setName(filtered);
+    if (touched.name) setNameError(validateName(filtered));
+  };
 
-    // Find existing profile or create new one
-    let profile = profiles.find(p => p.role === selectedRole && p.name.toLowerCase() === name.toLowerCase());
-    
+  const handlePhoneChange = (value: string) => {
+    const filtered = value.replace(/\D/g, '').slice(0, 10);
+    setPhone(filtered);
+    if (touched.phone) setPhoneError(validatePhone(filtered));
+  };
+
+  const isFormValid = !validateName(name) && !validatePhone(phone);
+
+  const handleLogin = async () => {
+    if (!selectedRole) return;
+
+    const nErr = validateName(name);
+    const pErr = validatePhone(phone);
+    setNameError(nErr);
+    setPhoneError(pErr);
+    setTouched({ name: true, phone: true });
+
+    if (nErr || pErr) {
+      toast({
+        title: 'Invalid input',
+        description: nErr || pErr || 'Please correct the highlighted fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let profile = profiles.find(p => p.role === selectedRole && p.name.toLowerCase() === name.trim().toLowerCase());
+
     if (!profile) {
       const patientId = generatePatientId(selectedRole);
       const newProfile = await addProfile({
@@ -73,12 +104,12 @@ const LoginPage = () => {
         patient_id: patientId,
         name: name.trim(),
         role: selectedRole,
-        phone: phone || '9999999999',
+        phone: phone.trim(),
         village: 'Rampur',
         assigned_asha_id: null,
         login_time: new Date().toISOString(),
       });
-      
+
       if (newProfile) {
         loginUser({
           id: newProfile.id,
