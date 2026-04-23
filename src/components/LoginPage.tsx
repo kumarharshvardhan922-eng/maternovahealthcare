@@ -4,12 +4,41 @@ import { UserRole } from '@/types/healthcare';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash } from 'lucide-react';
+import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash, AlertCircle } from 'lucide-react';
 import { generatePatientId } from '@/utils/patientIdGenerator';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/hooks/use-toast';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import heroBg from '@/assets/hero-bg.jpg';
+
+// Validation rules
+// Name: only letters, spaces, dots, hyphens, apostrophes; 2-50 chars; must contain at least one vowel
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,49}$/;
+const VOWEL_REGEX = /[aeiouAEIOU]/;
+// Phone: exactly 10 digits, starting with 6-9 (Indian mobile numbers)
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+const validateName = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Please enter your name';
+  if (trimmed.length < 2) return 'Name must be at least 2 characters';
+  if (trimmed.length > 50) return 'Name must be less than 50 characters';
+  if (!NAME_REGEX.test(trimmed)) return 'Name can only contain letters, spaces, . - \'';
+  if (!VOWEL_REGEX.test(trimmed)) return 'Please enter a valid name';
+  // Reject 3+ same letters in a row (e.g. "aaaa", "xxxxx")
+  if (/(.)\1{2,}/.test(trimmed)) return 'Please enter a valid name';
+  return null;
+};
+
+const validatePhone = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Please enter your phone number';
+  if (!/^\d+$/.test(trimmed)) return 'Phone number can only contain digits';
+  if (trimmed.length !== 10) return 'Phone number must be exactly 10 digits';
+  if (!PHONE_REGEX.test(trimmed)) return 'Enter a valid Indian mobile number (starts with 6-9)';
+  return null;
+};
 
 const roleOptionsBase: { role: UserRole; labelKey: string; icon: React.ReactNode; descKey: string; idPrefix: string }[] = [
   { role: 'asha', labelKey: 'roles.asha', icon: <Stethoscope className="w-8 h-8" />, descKey: 'login.ashaDesc', idPrefix: '0XXXXX' },
