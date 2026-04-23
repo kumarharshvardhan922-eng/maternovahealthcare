@@ -22,10 +22,14 @@ import {
   Stethoscope,
   Hash,
   Search,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Loader2,
+  ImageIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const MealMenuSection = () => {
   const { prescribedMeals, addPrescribedMeal, updatePrescribedMeal, deletePrescribedMeal, profiles, currentUser } = useApp();
