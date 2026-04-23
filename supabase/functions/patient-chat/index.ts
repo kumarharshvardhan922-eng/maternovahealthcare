@@ -20,7 +20,7 @@ Your responsibilities:
 - Be warm, respectful, and reassuring — like a caring elder sister or trusted health helper.`;
 
 // Google's streaming endpoint (Server-Sent Events format using ?alt=sse)
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`;
 
 interface ChatMessage {
