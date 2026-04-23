@@ -38,6 +38,19 @@ const MealMenuSection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<typeof prescribedMeals[0] | null>(null);
+
+  // AI generator state
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiPatientId, setAiPatientId] = useState<string>('');
+  const [aiMealType, setAiMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+  const [aiPrescribedBy, setAiPrescribedBy] = useState('');
+  const [aiResult, setAiResult] = useState<null | {
+    name: string; description: string; calories: number; protein: number;
+    carbs: number; fat: number; ingredients: string[]; special_instructions: string;
+    imageUrl: string | null;
+  }>(null);
   
   const [formData, setFormData] = useState({
     patient_id: '',
