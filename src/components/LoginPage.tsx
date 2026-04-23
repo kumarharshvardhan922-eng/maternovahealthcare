@@ -224,9 +224,22 @@ const LoginPage = () => {
                   type="text"
                   placeholder={t('login.namePlaceholder')}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12"
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onBlur={() => {
+                    setTouched(prev => ({ ...prev, name: true }));
+                    setNameError(validateName(name));
+                  }}
+                  maxLength={50}
+                  autoComplete="name"
+                  aria-invalid={!!nameError}
+                  className={`h-12 ${nameError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {nameError && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="w-3 h-3" />
+                    {nameError}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -234,15 +247,29 @@ const LoginPage = () => {
                 </label>
                 <Input
                   type="tel"
-                  placeholder={t('login.phonePlaceholder')}
+                  inputMode="numeric"
+                  placeholder="10-digit mobile number"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-12"
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onBlur={() => {
+                    setTouched(prev => ({ ...prev, phone: true }));
+                    setPhoneError(validatePhone(phone));
+                  }}
+                  maxLength={10}
+                  autoComplete="tel"
+                  aria-invalid={!!phoneError}
+                  className={`h-12 ${phoneError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {phoneError && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="w-3 h-3" />
+                    {phoneError}
+                  </p>
+                )}
               </div>
               <Button
                 onClick={handleLogin}
-                disabled={!name.trim()}
+                disabled={!isFormValid}
                 className="w-full h-12 text-lg font-semibold gradient-primary hover:opacity-90 transition-opacity"
               >
                 <UserCheck className="w-5 h-5 mr-2" />
