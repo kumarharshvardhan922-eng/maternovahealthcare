@@ -22,10 +22,14 @@ import {
   Stethoscope,
   Hash,
   Search,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Loader2,
+  ImageIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const MealMenuSection = () => {
   const { prescribedMeals, addPrescribedMeal, updatePrescribedMeal, deletePrescribedMeal, profiles, currentUser } = useApp();
@@ -34,6 +38,19 @@ const MealMenuSection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<typeof prescribedMeals[0] | null>(null);
+
+  // AI generator state
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiPatientId, setAiPatientId] = useState<string>('');
+  const [aiMealType, setAiMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('breakfast');
+  const [aiPrescribedBy, setAiPrescribedBy] = useState('');
+  const [aiResult, setAiResult] = useState<null | {
+    name: string; description: string; calories: number; protein: number;
+    carbs: number; fat: number; ingredients: string[]; special_instructions: string;
+    imageUrl: string | null;
+  }>(null);
   
   const [formData, setFormData] = useState({
     patient_id: '',
@@ -218,6 +235,59 @@ const MealMenuSection = () => {
     await deletePrescribedMeal(id);
   };
 
+  const generateAiMeal = async () => {
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meal', {
+        body: {
+          patientType: effectiveCategory,
+          mealType: aiMealType,
+          prompt: aiPrompt,
+          patientName: profiles.find(p => p.patient_id === aiPatientId)?.name || '',
+        },
+      });
+      if (error) throw error;
+      if (!data?.meal) throw new Error('No meal returned');
+      setAiResult({ ...data.meal, imageUrl: data.imageUrl || null });
+      toast.success('Meal generated!');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || 'Failed to generate meal');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const saveAiMeal = async () => {
+    if (!aiResult) return;
+    if (!aiPatientId || !aiPrescribedBy) {
+      toast.error('Select patient and enter doctor name');
+      return;
+    }
+    const patient = profiles.find(p => p.patient_id === aiPatientId);
+    if (!patient) return;
+    await addPrescribedMeal({
+      patient_id: patient.patient_id,
+      patient_name: patient.name,
+      patient_type: effectiveCategory as 'pregnant' | 'elderly' | 'infant',
+      meal_type: aiMealType,
+      name: aiResult.name,
+      description: aiResult.description,
+      calories: aiResult.calories,
+      protein: aiResult.protein,
+      carbs: aiResult.carbs,
+      fat: aiResult.fat,
+      ingredients: aiResult.ingredients,
+      prescribed_by: aiPrescribedBy,
+      prescribed_date: new Date().toISOString(),
+      special_instructions: aiResult.special_instructions || null,
+    });
+    setIsAiOpen(false);
+    setAiResult(null);
+    setAiPrompt('');
+  };
+
   const exportData = () => {
     const csvContent = [
       ['Patient ID', 'Patient Name', 'Category', 'Meal Type', 'Meal Name', 'Description', 'Calories', 'Protein (g)', 'Carbs (g)', 'Fat (g)', 'Ingredients', 'Prescribed By', 'Date', 'Special Instructions'],
@@ -335,6 +405,114 @@ const MealMenuSection = () => {
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
+          {isAsha && (
+            <Dialog open={isAiOpen} onOpenChange={(o) => { setIsAiOpen(o); if (!o) setAiResult(null); }}>
+              <DialogTrigger asChild>
+                <Button variant="secondary" className="bg-gradient-to-r from-lavender to-sky text-white hover:opacity-90">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  AI Generate
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    AI Meal Generator
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Patient *</label>
+                      <Select value={aiPatientId} onValueChange={setAiPatientId}>
+                        <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                        <SelectContent>
+                          {categoryPatients.map(p => (
+                            <SelectItem key={p.patient_id} value={p.patient_id}>
+                              {p.patient_id} — {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Meal Type</label>
+                      <Select value={aiMealType} onValueChange={(v: any) => setAiMealType(v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="breakfast">🌅 Breakfast</SelectItem>
+                          <SelectItem value="lunch">☀️ Lunch</SelectItem>
+                          <SelectItem value="snack">🍎 Snack</SelectItem>
+                          <SelectItem value="dinner">🌙 Dinner</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Prescribed By (Doctor) *</label>
+                    <Input value={aiPrescribedBy} onChange={(e) => setAiPrescribedBy(e.target.value)} placeholder="Dr. Anita Singh" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Special requirements (optional)</label>
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="e.g., diabetic-friendly, high iron, vegetarian, no dairy"
+                      rows={2}
+                    />
+                  </div>
+                  <Button onClick={generateAiMeal} disabled={aiLoading} className="w-full gradient-primary">
+                    {aiLoading ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating with AI...</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-2" /> Generate Meal</>
+                    )}
+                  </Button>
+
+                  {aiResult && (
+                    <Card className="p-4 border-l-4 border-l-primary space-y-3">
+                      {aiResult.imageUrl ? (
+                        <img src={aiResult.imageUrl} alt={aiResult.name} className="w-full h-48 object-cover rounded-lg" />
+                      ) : (
+                        <div className="w-full h-32 bg-muted flex items-center justify-center rounded-lg">
+                          <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-semibold text-lg">{aiResult.name}</h4>
+                        <p className="text-sm text-muted-foreground">{aiResult.description}</p>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                        <div className="p-2 bg-muted/50 rounded"><Flame className="w-4 h-4 mx-auto text-terracotta" /><div>{aiResult.calories} kcal</div></div>
+                        <div className="p-2 bg-muted/50 rounded"><Beef className="w-4 h-4 mx-auto text-primary" /><div>{aiResult.protein}g</div></div>
+                        <div className="p-2 bg-muted/50 rounded"><Cookie className="w-4 h-4 mx-auto text-warning" /><div>{aiResult.carbs}g</div></div>
+                        <div className="p-2 bg-muted/50 rounded">🥑<div>{aiResult.fat}g</div></div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {aiResult.ingredients.map((ing, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-sage-light text-foreground rounded-full text-xs">{ing}</span>
+                        ))}
+                      </div>
+                      {aiResult.special_instructions && (
+                        <div className="flex items-start gap-2 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+                          <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                          <p className="text-xs">{aiResult.special_instructions}</p>
+                        </div>
+                      )}
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" onClick={generateAiMeal} disabled={aiLoading}>
+                          <Sparkles className="w-4 h-4 mr-2" /> Regenerate
+                        </Button>
+                        <Button onClick={saveAiMeal} className="gradient-primary">
+                          Prescribe This Meal
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           {isAsha && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
