@@ -235,6 +235,59 @@ const MealMenuSection = () => {
     await deletePrescribedMeal(id);
   };
 
+  const generateAiMeal = async () => {
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meal', {
+        body: {
+          patientType: effectiveCategory,
+          mealType: aiMealType,
+          prompt: aiPrompt,
+          patientName: profiles.find(p => p.patient_id === aiPatientId)?.name || '',
+        },
+      });
+      if (error) throw error;
+      if (!data?.meal) throw new Error('No meal returned');
+      setAiResult({ ...data.meal, imageUrl: data.imageUrl || null });
+      toast.success('Meal generated!');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || 'Failed to generate meal');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const saveAiMeal = async () => {
+    if (!aiResult) return;
+    if (!aiPatientId || !aiPrescribedBy) {
+      toast.error('Select patient and enter doctor name');
+      return;
+    }
+    const patient = profiles.find(p => p.patient_id === aiPatientId);
+    if (!patient) return;
+    await addPrescribedMeal({
+      patient_id: patient.patient_id,
+      patient_name: patient.name,
+      patient_type: effectiveCategory as 'pregnant' | 'elderly' | 'infant',
+      meal_type: aiMealType,
+      name: aiResult.name,
+      description: aiResult.description,
+      calories: aiResult.calories,
+      protein: aiResult.protein,
+      carbs: aiResult.carbs,
+      fat: aiResult.fat,
+      ingredients: aiResult.ingredients,
+      prescribed_by: aiPrescribedBy,
+      prescribed_date: new Date().toISOString(),
+      special_instructions: aiResult.special_instructions || null,
+    });
+    setIsAiOpen(false);
+    setAiResult(null);
+    setAiPrompt('');
+  };
+
   const exportData = () => {
     const csvContent = [
       ['Patient ID', 'Patient Name', 'Category', 'Meal Type', 'Meal Name', 'Description', 'Calories', 'Protein (g)', 'Carbs (g)', 'Fat (g)', 'Ingredients', 'Prescribed By', 'Date', 'Special Instructions'],
