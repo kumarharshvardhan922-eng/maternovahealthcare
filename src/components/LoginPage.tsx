@@ -4,12 +4,41 @@ import { UserRole } from '@/types/healthcare';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash } from 'lucide-react';
+import { Heart, Users, Baby, UserCheck, Stethoscope, Clock, Hash, AlertCircle } from 'lucide-react';
 import { generatePatientId } from '@/utils/patientIdGenerator';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { toast } from '@/hooks/use-toast';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import heroBg from '@/assets/hero-bg.jpg';
+
+// Validation rules
+// Name: only letters, spaces, dots, hyphens, apostrophes; 2-50 chars; must contain at least one vowel
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,49}$/;
+const VOWEL_REGEX = /[aeiouAEIOU]/;
+// Phone: exactly 10 digits, starting with 6-9 (Indian mobile numbers)
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
+const validateName = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Please enter your name';
+  if (trimmed.length < 2) return 'Name must be at least 2 characters';
+  if (trimmed.length > 50) return 'Name must be less than 50 characters';
+  if (!NAME_REGEX.test(trimmed)) return 'Name can only contain letters, spaces, . - \'';
+  if (!VOWEL_REGEX.test(trimmed)) return 'Please enter a valid name';
+  // Reject 3+ same letters in a row (e.g. "aaaa", "xxxxx")
+  if (/(.)\1{2,}/.test(trimmed)) return 'Please enter a valid name';
+  return null;
+};
+
+const validatePhone = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Please enter your phone number';
+  if (!/^\d+$/.test(trimmed)) return 'Phone number can only contain digits';
+  if (trimmed.length !== 10) return 'Phone number must be exactly 10 digits';
+  if (!PHONE_REGEX.test(trimmed)) return 'Enter a valid Indian mobile number (starts with 6-9)';
+  return null;
+};
 
 const roleOptionsBase: { role: UserRole; labelKey: string; icon: React.ReactNode; descKey: string; idPrefix: string }[] = [
   { role: 'asha', labelKey: 'roles.asha', icon: <Stethoscope className="w-8 h-8" />, descKey: 'login.ashaDesc', idPrefix: '0XXXXX' },
@@ -24,6 +53,9 @@ const LoginPage = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ name: false, phone: false });
   const [currentTime] = useState(new Date());
   const roleOptions = roleOptionsBase.map(r => ({
     ...r,
@@ -31,12 +63,40 @@ const LoginPage = () => {
     description: t(r.descKey),
   }));
 
-  const handleLogin = async () => {
-    if (!selectedRole || !name.trim()) return;
+  const handleNameChange = (value: string) => {
+    const filtered = value.replace(/[^A-Za-z\s.'-]/g, '');
+    setName(filtered);
+    if (touched.name) setNameError(validateName(filtered));
+  };
 
-    // Find existing profile or create new one
-    let profile = profiles.find(p => p.role === selectedRole && p.name.toLowerCase() === name.toLowerCase());
-    
+  const handlePhoneChange = (value: string) => {
+    const filtered = value.replace(/\D/g, '').slice(0, 10);
+    setPhone(filtered);
+    if (touched.phone) setPhoneError(validatePhone(filtered));
+  };
+
+  const isFormValid = !validateName(name) && !validatePhone(phone);
+
+  const handleLogin = async () => {
+    if (!selectedRole) return;
+
+    const nErr = validateName(name);
+    const pErr = validatePhone(phone);
+    setNameError(nErr);
+    setPhoneError(pErr);
+    setTouched({ name: true, phone: true });
+
+    if (nErr || pErr) {
+      toast({
+        title: 'Invalid input',
+        description: nErr || pErr || 'Please correct the highlighted fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let profile = profiles.find(p => p.role === selectedRole && p.name.toLowerCase() === name.trim().toLowerCase());
+
     if (!profile) {
       const patientId = generatePatientId(selectedRole);
       const newProfile = await addProfile({
@@ -44,12 +104,12 @@ const LoginPage = () => {
         patient_id: patientId,
         name: name.trim(),
         role: selectedRole,
-        phone: phone || '9999999999',
+        phone: phone.trim(),
         village: 'Rampur',
         assigned_asha_id: null,
         login_time: new Date().toISOString(),
       });
-      
+
       if (newProfile) {
         loginUser({
           id: newProfile.id,
@@ -164,9 +224,22 @@ const LoginPage = () => {
                   type="text"
                   placeholder={t('login.namePlaceholder')}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12"
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onBlur={() => {
+                    setTouched(prev => ({ ...prev, name: true }));
+                    setNameError(validateName(name));
+                  }}
+                  maxLength={50}
+                  autoComplete="name"
+                  aria-invalid={!!nameError}
+                  className={`h-12 ${nameError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {nameError && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="w-3 h-3" />
+                    {nameError}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -174,15 +247,29 @@ const LoginPage = () => {
                 </label>
                 <Input
                   type="tel"
-                  placeholder={t('login.phonePlaceholder')}
+                  inputMode="numeric"
+                  placeholder="10-digit mobile number"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-12"
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  onBlur={() => {
+                    setTouched(prev => ({ ...prev, phone: true }));
+                    setPhoneError(validatePhone(phone));
+                  }}
+                  maxLength={10}
+                  autoComplete="tel"
+                  aria-invalid={!!phoneError}
+                  className={`h-12 ${phoneError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {phoneError && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-destructive">
+                    <AlertCircle className="w-3 h-3" />
+                    {phoneError}
+                  </p>
+                )}
               </div>
               <Button
                 onClick={handleLogin}
-                disabled={!name.trim()}
+                disabled={!isFormValid}
                 className="w-full h-12 text-lg font-semibold gradient-primary hover:opacity-90 transition-opacity"
               >
                 <UserCheck className="w-5 h-5 mr-2" />
